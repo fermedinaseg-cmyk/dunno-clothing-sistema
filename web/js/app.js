@@ -36,7 +36,7 @@ const downloads={save:Store.saveFile};
 const sample=null,sampleImg=false;
 
 // ---- data ----
-const S={costs:new Map(),products:new Map(),drops:[],entries:[],sales:[],histSales:[],perfiles:[],stockRows:[],loaded:{}};
+const S={orders:[],settings:{},promos:[],costs:new Map(),products:new Map(),drops:[],entries:[],sales:[],histSales:[],perfiles:[],stockRows:[],loaded:{}};
 let stock=new Map(),ptot=new Map(),AS=[];
 const ui={tab:null,branch:null,q:'',cat:'',marca:'',showEmpty:false,range:'30',dbr:'all',expanded:{},cart:[],pay:'ef',mixed:false,disc:0,mix:{ef:0,qr:0,tj:0,gc:0},confirm:null,vrange:'7',vbr:'all',salesLimit:60,pq:'',sel:{},ph:{items:[]},phm:{items:[]},nf:null,busy:false};
 const newNF=(keep)=>({modelo:'',marca:keep&&keep.marca||'',categoria:keep&&keep.categoria||'',corte:'',precio:'',costo:'',suc:keep&&keep.suc||'tarija',drop:keep&&keep.drop||'',lines:[{t:'',c:'',q:1}]});
@@ -61,10 +61,13 @@ function sub(path,fn,key){return db.collection(path).onSnapshot(s=>{fn(s);S.load
 sub('products',s=>{S.products=new Map(s.docs.map(d=>[d.id,{id:d.id,...d.data()}]))},'p');
 sub('drops',s=>{S.drops=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''))},'d');
 if(admin){
+  sub('orders',s=>{const antes=new Set(S.orders.map(o=>o.id));S.orders=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.ts-a.ts);if(S.loaded.o)S.orders.filter(o=>!antes.has(o.id)).forEach(o=>toast('Nuevo pedido '+o.codigo+' · Bs '+fmt(o.total)))},'o');
+  sub('settings',s=>{const d=s.docs.find(x=>x.id==='tienda');S.settings=d?d.data():{}},'ss');
+  sub('promos',s=>{S.promos=s.docs.map(d=>({id:d.id,...d.data()}))},'pr');
   sub('costs',s=>{S.costs=new Map(s.docs.map(d=>[d.id,d.data().costo]))},'c');
   sub('entries',s=>{S.entries=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.ts-a.ts);refreshStock()},'e');
   sub('hist',s=>{S.histSales=s.docs.flatMap(d=>((d.data().tickets)||[]).map((t,i)=>({id:'h:'+d.id+':'+i,hist:true,ts:t.ts,sucursal:t.s,items:t.i.map(a=>({p:a[0],t:'—',c:'—',q:a[1],pr:a[2]})),bruto:t.b,desc:t.d,total:t.n,pago:t.pg,by:null})))},'h');
-}else{S.loaded.e=true}
+}else{S.loaded.e=true;S.loaded.o=true}
 sub('sales',s=>{S.sales=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.ts-a.ts);refreshStock()},'s');
 let stT=null;
 function refreshStock(){clearTimeout(stT);stT=setTimeout(async()=>{try{S.stockRows=await Store.stockActual();S.loaded.st=true;schedule()}catch(e){console.error('stock',e);S.loaded.st=true;schedule()}},250)}
@@ -75,7 +78,8 @@ async function loadPerfiles(){try{S.perfiles=await Store.listPerfiles();schedule
 if(admin)loadPerfiles();
 const nameOf=id=>{if(!id)return '—';if(id===myId)return me.name||'Yo';const p=S.perfiles.find(x=>x.id===id);return p?(p.nombre||p.email):'Usuario '+String(id).slice(-4)};
 // ---- shell ----
-function tabsFor(){return admin?[['dash','Dashboard'],['vender','Vender'],['catalogo','Catálogo'],['nueva','Agregar prenda'],['inv','Inventario'],['drops','Drops'],['ventas','Ventas'],['prod','Productos'],['equipo','Equipo']]:[['vender','Vender'],['catalogo','Catálogo'],['ventas','Mis ventas']]}
+const pendientes=()=>S.orders.filter(o=>o.estado==='pendiente'&&Date.now()<o.ts+(S.settings.hold_horas||12)*3600000&&(o.pago&&o.pago.comprobante)||o.estado==='pagado').length;
+function tabsFor(){return admin?[['dash','Dashboard'],['vender','Vender'],['pedidos','Pedidos'+(pendientes()?' ('+pendientes()+')':'')],['catalogo','Catálogo'],['nueva','Agregar prenda'],['inv','Inventario'],['drops','Drops'],['ventas','Ventas'],['prod','Productos'],['tienda','Tienda online'],['equipo','Equipo']]:[['vender','Vender'],['catalogo','Catálogo'],['ventas','Mis ventas']]}
 if(!ui.tab)ui.tab=admin?'dash':'vender';
 function curBranch(){const m=mine();if(m)return m;if(!ui.branch)ui.branch='tarija';return ui.branch}
 function render(){
@@ -182,7 +186,7 @@ VIEWS.dash=()=>{
   const branchRows=BR.map(b=>{const ss=AS.filter(s=>!s.anulada&&inRange(s.ts,ui.range)&&s.sucursal===b.id);const st=stk(b.id);const u=sum(ss,s=>sum(s.items||[],i=>i.q));const n=sum(ss,s=>s.total||0);
     return `<tr><td class="l"><i class="dot" style="background:${b.c}"></i>${b.n}</td><td>${fmt(n)}</td><td>${fmt(u)}</td><td>${ss.length?fmt(n/ss.length):'–'}</td><td>${fmt(st.u)}</td><td>${fmt(st.v)}</td></tr>`}).join('');
   const none=!AS.length;
-  return `${seedCard()}${linkBanner()}<div class="toolbar"><div class="row" style="gap:16px"><div class="fgroup"><span class="flabel">Período</span>${rangeChips('range')}</div><div class="fgroup"><span class="flabel">Sucursal</span>${branchChips('dbr',true)}</div></div></div>
+  return `${seedCard()}${linkBanner()}${pendientes()?`<div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><b>${pendientes()} pedido${pendientes()===1?'':'s'} de la tienda online por atender</b><button class="btn" data-act="tab" data-v="pedidos">Ver pedidos</button></div>`:''}<div class="toolbar"><div class="row" style="gap:16px"><div class="fgroup"><span class="flabel">Período</span>${rangeChips('range')}</div><div class="fgroup"><span class="flabel">Sucursal</span>${branchChips('dbr',true)}</div></div></div>
   <section class="kpis">
     <div class="kpi"><div class="k">Venta neta</div><div class="v num">${fmt(neto)}<small>Bs</small></div><div class="d">${sales.length} ventas</div></div>
     <div class="kpi"><div class="k">Prendas vendidas</div><div class="v num">${fmt(units)}<small>uds</small></div><div class="d">${sales.length?fmt1(units/sales.length)+' por venta':'—'}</div></div>
@@ -348,7 +352,7 @@ VIEWS.ventas=()=>{
     const items=(s.items||[]).map(i=>`${i.q}× ${esc(cap(pname(i.p)))}${i.t==='—'?'':' '+esc(i.t)+' '+esc(i.c)}`).join(', ');
     const p=s.pago||{};const pm=[['ef','Efectivo'],['qr','QR'],['tj','Tarjeta'],['gc','Giftcard']].filter(x=>p[x[0]]>0).map(x=>x[1]+(Object.values(p).filter(v=>v>0).length>1?' '+fmt(p[x[0]]):'')).join(' + ');
     const conf=ui.confirm==='s'+s.id;
-    return `<tr style="${s.anulada?'opacity:.5;text-decoration:line-through':''}"><td class="l">${timeStr(s.ts)}</td><td class="l"><i class="dot" style="background:${BRM[s.sucursal]?BRM[s.sucursal].c:''}"></i>${esc(BRM[s.sucursal]?BRM[s.sucursal].n:s.sucursal)}</td><td class="l" style="white-space:normal;min-width:220px">${items}</td><td>${fmt(s.total)}${s.desc?`<div class="muted sm">desc. ${fmt(s.desc)}</div>`:''}</td><td class="l">${pm}</td><td class="l">${s.hist?'<span class="pill">Historial</span>':esc(nameOf(s.by))}</td>${admin?`<td>${s.hist?'':s.anulada?'<span class="pill">Anulada</span>':`<button class="btn sm ${conf?'danger':'sec'}" data-act="void" data-id="${esc(s.id)}">${conf?'¿Anular?':'Anular'}</button>`}</td>`:''}</tr>`}).join('');
+    return `<tr style="${s.anulada?'opacity:.5;text-decoration:line-through':''}"><td class="l">${timeStr(s.ts)}</td><td class="l"><i class="dot" style="background:${BRM[s.sucursal]?BRM[s.sucursal].c:''}"></i>${esc(BRM[s.sucursal]?BRM[s.sucursal].n:s.sucursal)}</td><td class="l" style="white-space:normal;min-width:220px">${items}</td><td>${fmt(s.total)}${s.desc?`<div class="muted sm">desc. ${fmt(s.desc)}</div>`:''}</td><td class="l">${pm}</td><td class="l">${s.hist?'<span class="pill">Historial</span>':s.online?'<span class="pill">Tienda online</span>':esc(nameOf(s.by))}</td>${admin?`<td>${s.hist||s.online?'':s.anulada?'<span class="pill">Anulada</span>':`<button class="btn sm ${conf?'danger':'sec'}" data-act="void" data-id="${esc(s.id)}">${conf?'¿Anular?':'Anular'}</button>`}</td>`:''}</tr>`}).join('');
   return `<div class="toolbar">${admin?`<div class="row" style="gap:16px"><div class="fgroup"><span class="flabel">Período</span>${rangeChips('vrange')}</div><div class="fgroup"><span class="flabel">Sucursal</span>${branchChips('vbr',true)}</div></div>`:`<div><h2>Mis ventas de hoy</h2><p class="muted sm" style="margin:2px 0 0">Solo ves las ventas que registraste tú en ${BRM[m].n}.</p></div>`}<div class="kpi" style="padding:8px 14px"><div class="k">Total ${admin?'del período':'de hoy'}</div><div class="v num" style="font-size:20px">Bs ${fmt(tot)} <small>${live.length} ventas</small></div></div></div>
   <div class="card">${rows?`<div class="tbl-wrap"><table class="t"><tr><th class="l">Fecha</th><th class="l">Sucursal</th><th class="l">Prendas</th><th>Total Bs</th><th class="l">Pago</th><th class="l">Vendedor</th>${admin?'<th></th>':''}</tr>${rows}</table></div>${list.length>ui.salesLimit?`<div class="row" style="margin-top:10px"><button class="btn sec sm" data-act="more-sales">Ver más (${list.length-ui.salesLimit} restantes)</button></div>`:''}`:empty('No hay ventas en este período')}</div>${admin?'<p class="note">Anular una venta la saca de las métricas y devuelve las prendas al stock de su sucursal.</p>':''}`;
 };
@@ -366,6 +370,80 @@ function prodTable(list){
   return `<table class="t"><tr><th class="l">Modelo</th><th class="l">Marca</th><th class="l">Categoría</th><th class="l">Corte</th><th>Precio Bs</th><th>Costo Bs</th><th class="l">Estado</th><th></th></tr>${list.slice(0,200).map(p=>`<tr><td class="l"><span class="thumb">${photoOf(p)?`<img src="${esc(photoOf(p))}" loading="lazy" alt="">`:esc(p.modelo.charAt(0))}</span><b>${esc(cap(p.modelo))}</b></td><td class="l">${esc(cap(p.marca))}</td><td class="l">${esc(p.categoria)}</td><td class="l">${esc(p.corte||'')}</td><td>${fmt(p.precio)}</td><td>${S.costs.get(p.id)?fmt(S.costs.get(p.id)):'–'}</td><td class="l">${p.activo===false?'<span class="pill">Inactivo</span>':'<span class="pill" style="color:var(--good)">Activo</span>'}</td><td><button class="btn sec sm" data-act="edit-prod" data-p="${esc(p.id)}">Editar</button></td></tr>`).join('')}</table>${list.length>200?`<p class="note">Mostrando 200 de ${list.length}. Usa el buscador.</p>`:''}`
 }
 AFTER.prod=()=>{const q=$('pq');if(q)q.addEventListener('input',()=>{ui.pq=q.value;const ql=ui.pq.trim().toLowerCase();$('results').innerHTML=prodTable([...S.products.values()].filter(p=>!ql||(p.modelo+' '+p.marca+' '+p.categoria).toLowerCase().includes(ql)).sort((a,b)=>a.modelo.localeCompare(b.modelo)))})};
+
+
+// ---- Pedidos de la tienda online ----
+const EST={pendiente:['Por pagar','warn'],pagado:['Pagado','good'],preparando:['Preparando','good'],enviado:['Enviado','good'],entregado:['Entregado',''],cancelado:['Cancelado','bad']};
+const SIG={pendiente:['pagado','Confirmar pago'],pagado:['preparando','Empezar a preparar'],preparando:['enviado','Marcar enviado / listo'],enviado:['entregado','Marcar entregado']};
+const vencido=o=>o.estado==='pendiente'&&Date.now()>o.ts+(S.settings.hold_horas||12)*3600000;
+const entregaTxt=o=>o.entrega.tipo==='retiro'?'Retiro en tienda':(o.entrega.tipo==='delivery'?'Delivery: ':'Envío nacional: ')+(o.entrega.direccion||'')+(o.entrega.ciudad?', '+o.entrega.ciudad:'');
+const metodoTxt={qr:'QR',transferencia:'Transferencia',contraentrega:'Contra entrega',tienda:'Pago en tienda'};
+VIEWS.pedidos=()=>{
+  const f=ui.pf||'atender';
+  const grupos={atender:o=>(o.estado==='pendiente'&&!vencido(o))||o.estado==='pagado'||o.estado==='preparando',pendiente:o=>o.estado==='pendiente'&&!vencido(o),camino:o=>o.estado==='enviado',hechos:o=>o.estado==='entregado',cancel:o=>o.estado==='cancelado'||vencido(o),todos:()=>true};
+  const lista=S.orders.filter(grupos[f]||grupos.todos);
+  const cnt=k=>S.orders.filter(grupos[k]).length;
+  const chip=(k,t)=>`<button class="chip" aria-pressed="${f===k}" data-act="ped-filtro" data-v="${k}">${t} (${cnt(k)})</button>`;
+  const rows=lista.slice(0,150).map(o=>{const v=vencido(o);const e=v?['Vencido','bad']:EST[o.estado]||[o.estado,''];
+    return `<tr class="clk" data-act="ped-open" data-id="${esc(o.id)}"><td class="l"><b>${esc(o.codigo)}</b><div class="muted sm">${timeStr(o.ts)}</div></td><td class="l">${esc(o.cliente.nombre)}<div class="muted sm">${esc(o.cliente.telefono)}</div></td><td class="l"><i class="dot" style="background:${BRM[o.sucursal]?BRM[o.sucursal].c:''}"></i>${esc(sucName(o.sucursal))}<div class="muted sm">${esc(o.entrega.tipo==='retiro'?'Retiro':o.entrega.tipo==='delivery'?'Delivery':'Nacional')}</div></td><td class="l">${esc(metodoTxt[o.pago.metodo]||o.pago.metodo)}${o.pago.comprobante?' <span class="pill good">Comprobante</span>':''}</td><td>${fmt(o.total)}</td><td class="l"><span class="pill ${e[1]}">${e[0]}</span></td></tr>`}).join('');
+  return `<div class="toolbar"><div><h2>Pedidos de la tienda online</h2><p class="muted sm" style="margin:2px 0 0">Los pedidos reservan las prendas ${S.settings.hold_horas||12} horas. Confirma el pago cuando veas el dinero.</p></div><div class="chips">${chip('atender','Por atender')}${chip('pendiente','Por pagar')}${chip('camino','En camino')}${chip('hechos','Entregados')}${chip('cancel','Cancelados')}${chip('todos','Todos')}</div></div>
+  <div class="card">${rows?`<div class="tbl-wrap"><table class="t"><tr><th class="l">Pedido</th><th class="l">Cliente</th><th class="l">Sucursal</th><th class="l">Pago</th><th>Total Bs</th><th class="l">Estado</th></tr>${rows}</table></div>`:empty('No hay pedidos aquí',S.orders.length?'Prueba con otro filtro.':'Cuando un cliente compre en la tienda, el pedido aparecerá aquí y recibirás un aviso.')}</div>`;
+};
+const sucName=id=>BRM[id]?BRM[id].n:id;
+function waCliente(o,texto){const t=String(o.cliente.telefono||'').replace(/\D/g,'');return 'https://wa.me/591'+t+'?text='+encodeURIComponent(texto)}
+async function abrirPedido(id){
+  const o=S.orders.find(x=>x.id===id);if(!o)return;
+  const v=vencido(o);const e=v?['Vencido','bad']:EST[o.estado]||[o.estado,''];
+  const sig=SIG[o.estado];
+  let comp='';
+  if(o.pago.comprobante){try{const u=await Store.signedUrl(o.pago.comprobante);comp=`<div><div class="flabel" style="margin:12px 0 6px">Comprobante de pago</div><a href="${esc(u)}" target="_blank" rel="noopener"><img src="${esc(u)}" alt="Comprobante" style="max-width:100%;max-height:340px;border-radius:8px;border:1px solid var(--line)"></a></div>`}catch(er){comp='<p class="muted sm">No pude abrir el comprobante.</p>'}}
+  const msgs={pagado:`Hola ${o.cliente.nombre}, confirmamos el pago de tu pedido ${o.codigo}. ¡Gracias! Ya lo estamos preparando.`,enviado:o.entrega.tipo==='retiro'?`Hola ${o.cliente.nombre}, tu pedido ${o.codigo} ya está listo para retirar en ${sucName(o.sucursal)}.`:`Hola ${o.cliente.nombre}, tu pedido ${o.codigo} ya salió. Cualquier duda escríbenos por aquí.`,pendiente:`Hola ${o.cliente.nombre}, vimos tu pedido ${o.codigo} por Bs ${fmt(o.total)}. ¿Nos confirmas tu pago para reservarlo?`};
+  openModal(`<div class="mhead"><div><h2>${esc(o.codigo)} <span class="pill ${e[1]}" style="vertical-align:middle">${e[0]}</span></h2><div class="muted sm">${timeStr(o.ts)} · ${esc(sucName(o.sucursal))}</div></div><button class="btn sec sm" data-act="close">Cerrar</button></div>
+  <div><b>${esc(o.cliente.nombre)}</b> · ${esc(o.cliente.telefono)}${o.cliente.email?' · '+esc(o.cliente.email):''}<br><span class="muted">${esc(entregaTxt(o))}${o.entrega.referencia?' ('+esc(o.entrega.referencia)+')':''}</span>${o.nota?`<br><span class="muted">Nota: ${esc(o.nota)}</span>`:''}</div>
+  <div class="tbl-wrap"><table class="t">${o.items.map(i=>`<tr><td class="l">${esc(cap(i.nombre||pname(i.p)))}<div class="muted sm">${esc(i.t)} · ${esc(i.c)}</div></td><td>x${i.q}</td><td>${fmt(i.pr*i.q)}</td></tr>`).join('')}
+    <tr><td class="l">Subtotal</td><td></td><td>${fmt(o.subtotal)}</td></tr>${o.descuento?`<tr><td class="l">Descuento${o.promo?' ('+esc(o.promo)+')':''}</td><td></td><td>-${fmt(o.descuento)}</td></tr>`:''}<tr><td class="l">Envío</td><td></td><td>${o.entrega.tipo==='nacional'?'A coordinar':fmt(o.envio||0)}</td></tr><tr style="font-weight:700"><td class="l">Total · ${esc(metodoTxt[o.pago.metodo]||o.pago.metodo)}</td><td></td><td>Bs ${fmt(o.total)}</td></tr></table></div>
+  ${comp}
+  <div class="row" style="margin-top:6px">${sig&&!v?`<button class="btn" data-act="ped-estado" data-id="${esc(o.id)}" data-v="${sig[0]}">${sig[1]}</button>`:''}${o.estado==='cancelado'||v?`<button class="btn sec" data-act="ped-estado" data-id="${esc(o.id)}" data-v="pendiente">Reactivar</button>`:''}${o.estado!=='cancelado'&&o.estado!=='entregado'?`<button class="btn danger" data-act="ped-estado" data-id="${esc(o.id)}" data-v="cancelado" data-conf="1">Cancelar pedido</button>`:''}
+  <a class="btn sec" target="_blank" rel="noopener" href="${esc(waCliente(o,msgs[o.estado]||msgs.pendiente))}">Escribir por WhatsApp</a></div>
+  <p class="note">Al confirmar el pago se registra la venta online en tu dashboard. Si cancelas un pedido, las prendas vuelven al stock.</p>`);
+}
+
+// ---- Ajustes de la tienda online ----
+VIEWS.tienda=()=>{
+  const c=S.settings||{};const g=(o,k,d)=>o&&o[k]!=null?o[k]:d;
+  const pg=Object.assign({qr:true,transferencia:true,contraentrega:true,tienda:true},c.pagos||{});
+  const inp=(id,label,val,extra)=>`<div class="fgroup"><span class="flabel">${label}</span><input type="${extra&&extra.type||'text'}" id="${id}" value="${esc(val)}" ${extra&&extra.ph?`placeholder="${esc(extra.ph)}"`:''}></div>`;
+  const per=(pref,label,obj,ph)=>BR.map(b=>inp(pref+b.id,label+' · '+b.n,g(obj,b.id,''),{ph})).join('');
+  const urlT=(location.origin+location.pathname.replace(/[^/]*$/,'')+'tienda/').replace(/\/web\/web\//,'/web/');
+  return `<div class="card"><div class="card-head"><h2>Tu tienda online</h2><p>Los clientes compran en: <a href="${esc(urlT)}" target="_blank" rel="noopener">${esc(urlT)}</a></p></div>
+  <div class="form-grid">${inp('t-anuncio','Mensaje de la barra superior',g(c,'anuncio',''),{ph:'Retiro gratis · Delivery · Envíos a todo Bolivia'})}${inp('t-horarios','Horario de atención',g(c,'horarios',''),{ph:'Lunes a sábado de 10:00 a 20:00'})}${inp('t-hold','Horas que se reserva un pedido sin pagar',g(c,'hold_horas',12),{type:'number'})}</div>
+  <h3 style="margin:18px 0 8px">Portada</h3><div class="form-grid">${inp('t-htit','Título grande',g(c.hero,'titulo',''),{ph:'Streetwear que se vive'})}${inp('t-hbtn','Texto del botón',g(c.hero,'boton',''),{ph:'Ver novedades'})}</div><div class="fgroup" style="margin-top:10px"><span class="flabel">Texto debajo del título</span><textarea id="t-htxt" rows="2">${esc(g(c.hero,'texto',''))}</textarea></div>
+  <h3 style="margin:18px 0 8px">WhatsApp de cada sucursal</h3><div class="form-grid">${per('t-wa-','WhatsApp',c.whatsapp,'59171234567')}</div><p class="note">Con código de país y sin signos. Se usa en el botón "Consultar" y en el aviso de pago.</p>
+  <h3 style="margin:18px 0 8px">Direcciones</h3><div class="form-grid">${per('t-dir-','Dirección',c.direcciones,'Calle y número')}</div>
+  <h3 style="margin:18px 0 8px">Envíos</h3><div class="form-grid">${per('t-env-','Delivery (Bs)',(c.envio||{}).delivery,'15')}${inp('t-gratis','Delivery gratis desde (Bs, 0 = nunca)',g(c.envio,'gratis_desde',0),{type:'number'})}</div><div class="fgroup" style="margin-top:10px"><span class="flabel">Texto para envíos a otras ciudades</span><textarea id="t-nac" rows="2">${esc(g(c.envio,'nacional_texto',''))}</textarea></div>
+  <h3 style="margin:18px 0 8px">Formas de pago</h3><div class="row" style="gap:16px">${[['qr','QR'],['transferencia','Transferencia'],['contraentrega','Contra entrega (delivery)'],['tienda','Pago en tienda (retiro)']].map(x=>`<label class="row sm" style="gap:6px"><input type="checkbox" id="t-pg-${x[0]}" ${pg[x[0]]?'checked':''}> ${x[1]}</label>`).join('')}</div>
+  <div class="fgroup" style="margin-top:10px"><span class="flabel">Datos de tu cuenta bancaria (se muestran al pagar)</span><textarea id="t-banco" rows="3" placeholder="Banco, número de cuenta, titular, CI/NIT">${esc(g(c,'banco',''))}</textarea></div>
+  <div class="fgroup" style="margin-top:10px"><span class="flabel">Código QR de tu banco</span><div class="row">${c.qr_foto?`<img src="${esc(imgUrl(c.qr_foto))}" alt="QR" style="width:120px;border-radius:8px;border:1px solid var(--line)">`:'<span class="muted sm">Aún no subiste el QR.</span>'}<label class="btn sec sm" style="cursor:pointer">Subir QR<input type="file" id="t-qr" accept="image/*" hidden></label></div></div>
+  <div class="fgroup" style="margin-top:10px"><span class="flabel">Política de cambios</span><textarea id="t-cambios" rows="2">${esc(g(c,'cambios_texto',''))}</textarea></div>
+  <p class="err" id="t-err"></p><div class="row" style="justify-content:flex-end"><button class="btn" data-act="tienda-guardar">Guardar ajustes</button></div></div>
+  <div class="card"><div class="card-head"><h2>Códigos de descuento</h2><p>Los clientes los escriben al pagar</p></div>
+  ${S.promos.length?`<div class="tbl-wrap"><table class="t"><tr><th class="l">Código</th><th class="l">Descuento</th><th>Compra mínima</th><th class="l">Vence</th><th class="l">Estado</th><th></th></tr>${S.promos.map(x=>`<tr><td class="l"><b>${esc(x.codigo)}</b></td><td class="l">${x.tipo==='pct'?x.valor+'%':'Bs '+fmt(x.valor)}</td><td>${fmt(x.minimo||0)}</td><td class="l">${esc(x.vence||'—')}</td><td class="l"><button class="btn sm ${x.activo===false?'':'sec'}" data-act="promo-toggle" data-id="${esc(x.id)}">${x.activo===false?'Activar':'Activo'}</button></td><td><button class="btn sec sm" data-act="promo-del" data-id="${esc(x.id)}">Borrar</button></td></tr>`).join('')}</table></div>`:'<p class="muted sm">Todavía no creaste códigos.</p>'}
+  <div class="form-grid" style="margin-top:12px">${inp('p-cod','Código',' ',{ph:'DUNNO10'})}<div class="fgroup"><span class="flabel">Tipo</span><select id="p-tipo"><option value="pct">Porcentaje (%)</option><option value="monto">Monto fijo (Bs)</option></select></div>${inp('p-val','Valor','',{type:'number'})}${inp('p-min','Compra mínima (Bs)','',{type:'number'})}${inp('p-vence','Vence (opcional)','',{type:'date'})}</div>
+  <div class="row" style="margin-top:10px"><button class="btn" data-act="promo-add">Crear código</button></div></div>`;
+};
+async function guardarTienda(){
+  const v=id=>($(id).value||'').trim();const err=$('t-err');err.textContent='';
+  const mapa=(pref)=>Object.fromEntries(BR.map(b=>[b.id,v(pref+b.id)]));
+  const del=Object.fromEntries(BR.map(b=>[b.id,+v('t-env-'+b.id)||0]));
+  const d={...(S.settings||{}),anuncio:v('t-anuncio'),horarios:v('t-horarios'),hold_horas:Math.max(1,+v('t-hold')||12),
+    hero:{titulo:v('t-htit'),boton:v('t-hbtn'),texto:v('t-htxt'),foto:(S.settings.hero||{}).foto||''},
+    whatsapp:Object.fromEntries(Object.entries(mapa('t-wa-')).map(([k,x])=>[k,x.replace(/\D/g,'')])),direcciones:mapa('t-dir-'),
+    envio:{delivery:del,gratis_desde:+v('t-gratis')||0,nacional_texto:v('t-nac')},
+    pagos:{qr:$('t-pg-qr').checked,transferencia:$('t-pg-transferencia').checked,contraentrega:$('t-pg-contraentrega').checked,tienda:$('t-pg-tienda').checked},
+    banco:v('t-banco'),cambios_texto:v('t-cambios')};
+  if(!d.pagos.qr&&!d.pagos.transferencia&&!d.pagos.contraentrega&&!d.pagos.tienda){err.textContent='Activa al menos una forma de pago.';return}
+  try{await db.doc('settings/tienda').set(d);toast('Ajustes guardados')}catch(e){err.textContent='No se pudo guardar ('+(e.code||'error')+').'}
+}
 
 // Team
 VIEWS.equipo=()=>{
@@ -563,24 +641,32 @@ function openProd(pid){
   openModal(`<div class="mhead"><h2>${p?'Editar producto':'Nuevo producto'}</h2><button class="btn sec sm" data-act="close">Cerrar</button></div>
   <div class="form-grid"><div class="fgroup"><span class="flabel">Modelo</span><input type="text" id="f-modelo" value="${esc(p?p.modelo:'')}"></div><div class="fgroup"><span class="flabel">Marca</span><input type="text" id="f-marca" list="dl-marca" value="${esc(p?p.marca:'')}"></div>
   <div class="fgroup"><span class="flabel">Categoría</span><input type="text" id="f-cat" list="dl-cat" value="${esc(p?p.categoria:'')}"></div><div class="fgroup"><span class="flabel">Corte</span><input type="text" id="f-corte" value="${esc(p?p.corte||'':'')}"></div>
-  <div class="fgroup"><span class="flabel">Precio de venta (Bs)</span><input type="number" min="0" id="f-precio" value="${p?p.precio:''}"></div><div class="fgroup"><span class="flabel">Costo (Bs, opcional)</span><input type="number" min="0" id="f-costo" value="${p&&S.costs.get(p.id)?S.costs.get(p.id):''}"></div></div>
+  <div class="fgroup"><span class="flabel">Precio de venta (Bs)</span><input type="number" min="0" id="f-precio" value="${p?p.precio:''}"></div><div class="fgroup"><span class="flabel">Precio antes (Bs, si está en oferta)</span><input type="number" min="0" id="f-antes" value="${p&&p.precio_antes?p.precio_antes:''}"></div><div class="fgroup"><span class="flabel">Costo (Bs, opcional)</span><input type="number" min="0" id="f-costo" value="${p&&S.costs.get(p.id)?S.costs.get(p.id):''}"></div></div>
   ${assets?`<div><div class="flabel" style="margin-bottom:6px">Fotos</div><div id="phs-phm">${photoStrip('phm')}</div></div>`:''}
+  <div class="fgroup"><span class="flabel">Descripción para la tienda (opcional)</span><textarea id="f-desc" rows="2">${esc(p&&p.descripcion||'')}</textarea></div>
+  <label class="row sm" style="gap:6px"><input type="checkbox" id="f-dest" ${p&&p.destacado?'checked':''}> Destacar en la portada de la tienda</label>
   ${p?`<label class="row sm" style="gap:6px"><input type="checkbox" id="f-activo" ${p.activo===false?'':'checked'}> Activo (aparece en catálogo y ventas)</label>`:''}
   <p class="err" id="f-err"></p><div class="row" style="justify-content:flex-end"><button class="btn sec" data-act="close">Cancelar</button><button class="btn" data-act="save-prod" data-p="${esc(pid||'')}">Guardar</button></div>`);
 }
 async function saveProd(pid){
   const g=id=>$(id).value.trim();const err=$('f-err');
-  const d={modelo:g('f-modelo').toUpperCase(),marca:g('f-marca').toUpperCase(),categoria:g('f-cat'),corte:g('f-corte'),precio:+g('f-precio'),activo:true};
+  const oldp=pid?prod(pid):null;
+  const d=oldp?{...oldp}:{};delete d.id;
+  Object.assign(d,{modelo:g('f-modelo').toUpperCase(),marca:g('f-marca').toUpperCase(),categoria:g('f-cat'),corte:g('f-corte'),precio:+g('f-precio'),activo:true});
   if(!d.modelo||!d.marca||!d.categoria){err.textContent='Modelo, marca y categoría son obligatorios.';return}
   if(!(d.precio>0)){err.textContent='Escribe el precio de venta.';return}
+  const antes=+g('f-antes');if(antes>d.precio)d.precio_antes=antes;else delete d.precio_antes;
+  const desc=g('f-desc');if(desc)d.descripcion=desc;else delete d.descripcion;
+  d.destacado=!!$('f-dest').checked;if(!d.destacado)delete d.destacado;
   const co=+g('f-costo');const a=$('f-activo');if(a)d.activo=a.checked;
-  const old=pid&&prod(pid)&&prod(pid).fotos||[];
+  const old=(oldp&&oldp.fotos)||[];
   try{
-    if(assets){d.fotos=await uploadItems('phm');if(!d.fotos.length)delete d.fotos}else if(old.length)d.fotos=old;
-    const oldp=pid&&prod(pid);if(oldp&&oldp.fc){const fc=oldp.fc.filter(x=>(d.fotos||[]).includes(x.f));if(fc.length)d.fc=fc}
+    if(assets){d.fotos=await uploadItems('phm');if(!d.fotos.length)delete d.fotos}
+    const quitadas=old.filter(id=>!(d.fotos||[]).includes(id));
+    if(d.fc){d.fc=d.fc.filter(x=>!quitadas.includes(x.f));if(!d.fc.length)delete d.fc}
     let newId=pid;if(pid)await db.doc('products/'+pid).set(d);else newId=(await db.collection('products').add(d)).id;
     await setCost(newId,co);
-    if(assets)for(const id of old){if(!(d.fotos||[]).includes(id)){try{await assets.delete(id)}catch(e){}}}
+    if(assets)for(const id of quitadas){try{await assets.delete(id)}catch(e){}}
     toast('Producto guardado');closeModal()
   }catch(e){err.textContent='No se pudo guardar ('+(e.code||'error')+').'}
 }
@@ -625,6 +711,19 @@ document.addEventListener('click',async e=>{
     case 'perfil-activo':{const p=S.perfiles.find(x=>x.id===el.dataset.id);if(p){try{await Store.updatePerfil(p.id,{activo:!p.activo});toast(p.activo?'Usuario desactivado':'Usuario activado');loadPerfiles()}catch(er){toast('No se pudo guardar')}}break}
     case 'copy-public':{const u=new URL('catalogo.html?s='+curBranch(),location.href).href;try{await navigator.clipboard.writeText(u);toast('Enlace copiado: '+u)}catch(er){toast(u)}break}
     case 'logout':await Store.signOut();location.reload();break;
+    case 'ped-filtro':ui.pf=el.dataset.v;render();break;
+    case 'ped-open':abrirPedido(el.dataset.id);break;
+    case 'ped-estado':{
+      const k='p'+el.dataset.id+el.dataset.v;if(el.dataset.conf&&ui.confirm!==k){ui.confirm=k;el.textContent='¿Seguro? Toca otra vez';setTimeout(()=>{if(ui.confirm===k)ui.confirm=null},4000);break}
+      ui.confirm=null;el.disabled=true;
+      try{await Store.pedidoEstado(el.dataset.id,el.dataset.v);toast('Pedido actualizado');closeModal();refreshStock()}catch(er){el.disabled=false;toast(er.message||'No se pudo cambiar el estado')}break}
+    case 'tienda-guardar':guardarTienda();break;
+    case 'promo-add':{const cod=($('p-cod').value||'').trim().toUpperCase().replace(/\s+/g,'');const val=+$('p-val').value;if(!cod||!(val>0)){toast('Escribe el código y su valor');break}
+      if($('p-tipo').value==='pct'&&val>100){toast('El porcentaje no puede pasar de 100');break}
+      const d={codigo:cod,tipo:$('p-tipo').value,valor:val,minimo:+$('p-min').value||0,activo:true};if($('p-vence').value)d.vence=$('p-vence').value;
+      try{await db.collection('promos').add(d);toast('Código creado')}catch(er){toast('No se pudo crear')}break}
+    case 'promo-toggle':{const x=S.promos.find(y=>y.id===el.dataset.id);if(x){const {id:_i,...rest}=x;try{await db.doc('promos/'+x.id).set({...rest,activo:x.activo===false})}catch(er){toast('No se pudo cambiar')}}break}
+    case 'promo-del':{try{await db.doc('promos/'+el.dataset.id).delete();toast('Código borrado')}catch(er){toast('No se pudo borrar')}break}
     case 'import-prod':openImportProd();break;
     case 'do-import':doImport();break;
     case 'more-sales':ui.salesLimit+=60;render();break;
@@ -641,10 +740,11 @@ document.addEventListener('change',async e=>{
   if(fi){const k=fi.dataset.phkey;const files=[...fi.files];fi.value='';let n=0;
     for(const f of files){if(ui[k].items.length>=6)break;try{const blob=await compress(f);ui[k].items.push({blob,url:URL.createObjectURL(blob)});n++}catch(er){toast('No pude leer una de las fotos')}}
     refreshStrip(k);return}
-  const el=e.target.closest('[data-act-change]');if(!el)return;const a=el.dataset.actChange;
+  const el=e.target.closest('[data-act-change]')||(e.target.id==='t-qr'?e.target:null);if(!el)return;const a=el.dataset?el.dataset.actChange:'';
   if(a==='cat'){ui.cat=el.value;const b=curBranch();$('results').innerHTML=listHtml(b,ui.tab==='vender')}
   if(a==='marca'){ui.marca=el.value;$('results').innerHTML=listHtml(curBranch(),ui.tab==='vender')}
   if(a==='empty'){ui.showEmpty=el.checked;render()}
+  if(el.id==='t-qr'&&el.files[0]){try{const blob=await compress(el.files[0]);const path=await Store.uploadPhoto(blob);await db.doc('settings/tienda').set({...(S.settings||{}),qr_foto:path});toast('QR guardado')}catch(er){toast('No se pudo subir el QR')}}
   if(a==='sel'){ui.sel[el.dataset.p]=el.checked;const n=Object.values(ui.sel).filter(Boolean).length;const c=$('selcount');if(c)c.textContent=n?n+' seleccionadas':'Se incluirán todas las que ves'}
   if(a==='perfil-suc'||a==='perfil-rol'){const id=el.dataset.id;try{await Store.updatePerfil(id,a==='perfil-suc'?{sucursal:el.value||null}:{rol:el.value});toast('Guardado');loadPerfiles()}catch(er){toast('No se pudo guardar')}}
 });

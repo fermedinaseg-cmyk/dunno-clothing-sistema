@@ -233,9 +233,20 @@ async function saveFile({ filename, data }) {
   return { status: 'saved' };
 }
 
+async function pedidoEstado(id, estado) {
+  const { data, error } = await sb.rpc('pedido_cambiar_estado', { p_id: id, p_estado: estado });
+  if (error) throw { code: error.code, message: error.message };
+  return data;
+}
+async function signedUrl(path) {
+  const { data, error } = await sb.storage.from('comprobantes').createSignedUrl(path, 600);
+  if (error) throw errMsg(error);
+  return data.signedUrl;
+}
+
 async function signOut() { if (sb) await sb.auth.signOut(); }
 
 export const Store = {
   db, sb, requireLogin, stockActual, registrarVenta, listPerfiles, updatePerfil,
-  photoUrl, uploadPhoto, deletePhoto, saveFile, signOut,
+  photoUrl, uploadPhoto, deletePhoto, saveFile, signOut, pedidoEstado, signedUrl,
 };
