@@ -1,0 +1,28 @@
+name: Cargar datos iniciales
+# Se ejecuta a mano: GitHub > Actions > "Cargar datos iniciales" > Run workflow.
+# Necesita dos secretos del repositorio: SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY.
+on:
+  workflow_dispatch:
+    inputs:
+      opciones:
+        description: 'Opciones extra (déjalo vacío para cargar todo). Ej: --sin-fotos'
+        required: false
+        default: ''
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Instalar dependencias
+        working-directory: scripts
+        run: npm install --no-audit --no-fund
+      - name: Cargar datos
+        working-directory: scripts
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          OPCIONES: ${{ github.event.inputs.opciones }}
+        run: node seed.mjs $OPCIONES
