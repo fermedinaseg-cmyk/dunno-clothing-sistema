@@ -1,0 +1,39 @@
+{
+ "anuncio": "Retiro gratis en tienda · Delivery en tu ciudad · Envíos a todo Bolivia",
+ "horarios": "Lunes a sábado de 10:00 a 20:00",
+ "hold_horas": 12,
+ "hero": {
+  "titulo": "Streetwear que se vive",
+  "texto": "Poleras, hoddies, buzos y pantalones de las marcas que mueven la calle. Retira en Tarija, Cochabamba o Santa Cruz, o recíbelo en tu casa.",
+  "boton": "Ver novedades",
+  "foto": ""
+ },
+ "whatsapp": {
+  "tarija": "",
+  "cochabamba": "",
+  "santacruz": ""
+ },
+ "direcciones": {
+  "tarija": "",
+  "cochabamba": "",
+  "santacruz": ""
+ },
+ "envio": {
+  "delivery": {
+   "tarija": 15,
+   "cochabamba": 15,
+   "santacruz": 20
+  },
+  "gratis_desde": 0,
+  "nacional_texto": "Enviamos por flota o encomienda a todo Bolivia. El costo del transporte lo pagas al recibir."
+ },
+ "pagos": {
+  "qr": true,
+  "transferencia": true,
+  "contraentrega": true,
+  "tienda": true
+ },
+ "banco": "",
+ "qr_foto": "",
+ "cambios_texto": "Tienes 7 días para cambiar tu prenda por otra talla o color, con la etiqueta puesta y sin uso. Escríbenos por WhatsApp para coordinar."
+}

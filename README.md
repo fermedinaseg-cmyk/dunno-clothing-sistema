@@ -8,6 +8,7 @@ Sistema web para las 3 sucursales (Tarija, Cochabamba y Santa Cruz):
 - **Dashboard** del dueño: ventas, sucursales, modelos, tallas, colores, pagos, descuentos y alertas de stock.
 - **Catálogo para clientes** con enlace público y botón de WhatsApp, siempre al día con el stock.
 - **Catálogo PDF** e imágenes listas para enviar.
+- **Tienda online** para tus clientes (`/tienda/`): catálogo con filtros, página de cada prenda, carrito, compra sin cuenta, pago con QR o transferencia, delivery o retiro, códigos de descuento y seguimiento del pedido. Usa **el mismo inventario** del sistema: lo que se vende en tienda o en línea se descuenta de un solo stock.
 - **Cuentas separadas**: el dueño ve todo; cada vendedor solo vende y ve lo de su sucursal.
 
 Ya trae cargados tus datos: 217 modelos, el inventario del 8 de octubre de 2026 (2.045 prendas), el historial de ventas de junio a septiembre y las 375 fotos.
@@ -36,6 +37,7 @@ Si tu repositorio es **privado** y no pagas GitHub Pro, GitHub Pages no funciona
 1. En Supabase abre **SQL Editor → New query**.
 2. Abre el archivo [`supabase/schema.sql`](supabase/schema.sql) de este repositorio, copia **todo** su contenido, pégalo y toca **Run**.
 3. Debe decir *Success*. Puedes ejecutarlo más de una vez sin problema.
+4. Repite lo mismo con el archivo [`supabase/tienda.sql`](supabase/tienda.sql) (pedidos, códigos de descuento y comprobantes de la tienda online). **Siempre en este orden: primero `schema.sql`, después `tienda.sql`.**
 
 ### 3. Crear tu cuenta de dueño
 1. En Supabase abre **Authentication → Users → Add user → Create new user**.
@@ -75,6 +77,42 @@ Cambia `tarija` por `cochabamba` o `santacruz` para el catálogo de cada sucursa
 ### 7. Avisar a Supabase cuál es tu página
 En Supabase abre **Authentication → URL Configuration** y en **Site URL** pega la dirección de tu página. Así funcionan los correos de "Olvidé mi contraseña".
 
+## Tienda online
+
+Después de publicar, tu tienda queda en:
+
+```
+https://fermedinaseg-cmyk.github.io/dunno-clothing-sistema/tienda/
+```
+
+**Primeros ajustes (5 minutos).** Entra al sistema con tu cuenta de dueño, abre la pestaña **Tienda online** y completa:
+- Los **WhatsApp** y las **direcciones** de cada sucursal.
+- Cuánto cobras por **delivery** en cada ciudad (y desde qué monto es gratis).
+- Tus **datos bancarios** y la foto de tu **código QR** del banco: se muestran al cliente cuando paga.
+- Las **formas de pago** que quieres aceptar y el texto de **cambios**.
+
+**Cómo compra un cliente**
+1. Elige su ciudad (cada sucursal vende su propio stock), mira las prendas, escoge color y talla y las agrega al carrito.
+2. Pone su nombre y celular, elige retiro, delivery o envío a otra ciudad, y cómo paga. No necesita crear cuenta.
+3. Recibe un **código de pedido** (por ejemplo `DN-7K3Q2A`). Las prendas quedan **reservadas 12 horas** (lo cambias en Ajustes) mientras paga.
+4. Paga con QR o transferencia y **sube la foto del comprobante** (o te lo manda por WhatsApp). Puede seguir su pedido en `/tienda/#/seguimiento` con su código y su celular.
+
+**Cómo lo atiendes tú**
+1. En **Pedidos** ves los pedidos nuevos (también te sale un aviso y una alerta en el dashboard).
+2. Abres el pedido, revisas el comprobante y tocas **Confirmar pago**. Ahí se registra la venta online en tu dashboard.
+3. Avanzas el estado: **Preparando → Enviado/Listo → Entregado**, y escribes al cliente por WhatsApp con un toque.
+4. Si cancelas un pedido, o si el cliente no paga a tiempo, **las prendas vuelven al stock solas**.
+
+**Cosas útiles**
+- En **Productos → Editar** puedes poner un **precio anterior** (aparece tachado como oferta), una **descripción** y marcar la prenda como **destacada** para la portada.
+- En **Tienda online → Códigos de descuento** creas códigos (por porcentaje o monto) con compra mínima y fecha de vencimiento.
+- Los vendedores no ven los pedidos online: los atiende el dueño.
+
+**Lo que todavía no incluye** (se puede agregar después):
+- **Pago con tarjeta o QR automático.** Hoy el cobro es manual: tú confirmas cuando ves el dinero. Para cobrar solo con QR/tarjeta hay que contratar una pasarela boliviana (por ejemplo Libélula o PagosNet), que pide un contrato con tu empresa.
+- **Avisos automáticos por correo o WhatsApp.** Hoy el aviso al dueño es dentro del sistema, y al cliente le escribes tú con el botón de WhatsApp.
+- **Cálculo automático del envío a otras ciudades.** Se coordina con el cliente.
+
 ## Agregar vendedores
 1. Supabase → **Authentication → Users → Add user** (correo, contraseña y *Auto Confirm User*).
 2. Pásale al vendedor el enlace del sistema, su correo y su contraseña.
@@ -107,11 +145,13 @@ Con un dominio como `dunnoclothing.com` (unos 10 a 15 USD al año) puedes tener 
 ```
 web/                 La página (HTML, CSS y JavaScript sin compilar)
   index.html         Sistema interno
-  catalogo.html      Catálogo público para clientes
+  catalogo.html      Catálogo público para clientes (solo ver)
+  tienda/            Tienda online completa (catálogo, carrito, compra, pedido)
   config.js          Dirección y clave de Supabase, WhatsApp
   js/app.js          Pantallas y lógica
   js/store.js        Conexión con Supabase (datos, sesión, fotos)
 supabase/schema.sql  Tablas, permisos, stock y funciones (registrar_venta, catalogo_publico)
+supabase/tienda.sql  Pedidos de la tienda online (crear_pedido, consultar_pedido, pedido_cambiar_estado…)
 seed/                Datos iniciales: productos, inventario, historial y fotos
 scripts/seed.mjs     Carga los datos iniciales en Supabase
 .github/workflows/   Publicar sitio · Cargar datos iniciales · Mantener activo

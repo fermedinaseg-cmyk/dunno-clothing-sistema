@@ -147,13 +147,21 @@ create trigger docs_actualizado
 --            − transferencias enviadas − ventas no anuladas
 -- ---------------------------------------------------------------------------
 
--- Cálculo interno (nadie puede llamarlo directamente desde la web)
+-- Cálculo interno (nadie puede llamarlo directamente desde la web).
+-- Descuenta también los pedidos de la tienda online que están reservando
+-- prendas: todos menos los cancelados y los pendientes de pago que ya
+-- vencieron (por defecto a las 12 horas, configurable en la tienda).
 create or replace function public._stock(p_sucursal text default null)
 returns table (b text, p text, t text, c text, q integer)
 language sql stable security definer
 set search_path = public
 as $$
-  with mov as (
+  with cfg as (
+    select coalesce((select (d.data ->> 'hold_horas')::numeric
+                       from public.docs d
+                      where d.coleccion = 'settings' and d.id = 'tienda'), 12) as hold
+  ),
+  mov as (
     select e.data ->> 'sucursal' as b, l ->> 'p' as p, l ->> 't' as t, l ->> 'c' as c,
            (l ->> 'q')::int as q
       from public.docs e, jsonb_array_elements(e.data -> 'lines') l
@@ -167,6 +175,14 @@ as $$
       from public.docs s, jsonb_array_elements(s.data -> 'items') i
      where s.coleccion = 'sales'
        and coalesce((s.data ->> 'anulada')::boolean, false) = false
+       and coalesce((s.data ->> 'online')::boolean, false) = false
+    union all
+    select o.data ->> 'sucursal', i ->> 'p', i ->> 't', i ->> 'c', -(i ->> 'q')::int
+      from public.docs o cross join cfg, jsonb_array_elements(o.data -> 'items') i
+     where o.coleccion = 'orders'
+       and o.data ->> 'estado' <> 'cancelado'
+       and not (o.data ->> 'estado' = 'pendiente'
+                and (o.data ->> 'ts')::bigint < (extract(epoch from now()) * 1000 - cfg.hold * 3600000))
   )
   select mov.b, mov.p, mov.t, mov.c, sum(mov.q)::int
     from mov

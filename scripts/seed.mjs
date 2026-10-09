@@ -57,6 +57,10 @@ try {
   await subirDocs('products', leer('products.json'));
   if (!args.has('--sin-inventario')) await subirDocs('entries', leer('entries.json'));
   if (!args.has('--sin-historial')) await subirDocs('hist', leer('hist.json'));
+  // Ajustes de la tienda online: solo se crean si todavía no existen (no pisa lo que ya configuraste)
+  const { data: yaHay } = await sb.from('docs').select('id').eq('coleccion', 'settings').eq('id', 'tienda').maybeSingle();
+  if (!yaHay) await subirDocs('settings', [{ id: 'tienda', data: leer('settings.json') }]);
+  else console.log('✔ settings: ya existían, se conservan');
   console.log('Listo. Ya puedes entrar al sistema.');
 } catch (e) {
   console.error('✖ ' + e.message);
