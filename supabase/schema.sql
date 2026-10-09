@@ -164,25 +164,29 @@ as $$
   mov as (
     select e.data ->> 'sucursal' as b, l ->> 'p' as p, l ->> 't' as t, l ->> 'c' as c,
            (l ->> 'q')::int as q
-      from public.docs e, jsonb_array_elements(e.data -> 'lines') l
+      from public.docs e
+     cross join lateral jsonb_array_elements(e.data -> 'lines') as l
      where e.coleccion = 'entries'
     union all
     select e.data ->> 'origen', l ->> 'p', l ->> 't', l ->> 'c', -(l ->> 'q')::int
-      from public.docs e, jsonb_array_elements(e.data -> 'lines') l
+      from public.docs e
+     cross join lateral jsonb_array_elements(e.data -> 'lines') as l
      where e.coleccion = 'entries' and e.data ->> 'tipo' = 'transferencia'
     union all
     select s.data ->> 'sucursal', i ->> 'p', i ->> 't', i ->> 'c', -(i ->> 'q')::int
-      from public.docs s, jsonb_array_elements(s.data -> 'items') i
+      from public.docs s
+     cross join lateral jsonb_array_elements(s.data -> 'items') as i
      where s.coleccion = 'sales'
        and coalesce((s.data ->> 'anulada')::boolean, false) = false
        and coalesce((s.data ->> 'online')::boolean, false) = false
     union all
     select o.data ->> 'sucursal', i ->> 'p', i ->> 't', i ->> 'c', -(i ->> 'q')::int
-      from public.docs o cross join cfg, jsonb_array_elements(o.data -> 'items') i
+      from public.docs o
+     cross join lateral jsonb_array_elements(o.data -> 'items') as i
      where o.coleccion = 'orders'
        and o.data ->> 'estado' <> 'cancelado'
        and not (o.data ->> 'estado' = 'pendiente'
-                and (o.data ->> 'ts')::bigint < (extract(epoch from now()) * 1000 - cfg.hold * 3600000))
+                and (o.data ->> 'ts')::bigint < (extract(epoch from now()) * 1000 - (select cfg.hold from cfg) * 3600000))
   )
   select mov.b, mov.p, mov.t, mov.c, sum(mov.q)::int
     from mov
