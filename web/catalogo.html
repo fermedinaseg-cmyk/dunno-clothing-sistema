@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Catálogo Dunno Clothing</title>
+<meta name="description" content="Mira las prendas disponibles hoy en Dunno Clothing: poleras, hoddies, buzos, pantalones y más. Escríbenos por WhatsApp.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230f1218'/%3E%3Ctext x='32' y='43' font-size='34' font-family='Arial' font-weight='700' text-anchor='middle' fill='white'%3ED%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Instrument+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="css/catalogo.css">
+</head>
+<body>
+<header class="top">
+  <div class="top-in">
+    <h1>DUNNO CLOTHING</h1>
+    <p class="sub">Catálogo actualizado · prendas disponibles hoy</p>
+    <div class="chips" id="sucs" role="tablist" aria-label="Sucursal"></div>
+  </div>
+</header>
+<main class="wrap">
+  <div class="bar">
+    <input type="search" id="q" placeholder="Buscar modelo o marca…" aria-label="Buscar">
+    <div class="chips" id="cats" aria-label="Categoría"></div>
+  </div>
+  <p class="count" id="count" aria-live="polite"></p>
+  <div class="grid" id="grid"></div>
+  <p class="empty" id="empty" hidden>No encontramos prendas con ese filtro. Prueba con otra categoría o sucursal.</p>
+</main>
+<footer class="foot">Los precios están en bolivianos (Bs). La disponibilidad cambia durante el día: escríbenos para confirmar tu talla.</footer>
+<script type="module" src="js/catalogo.js"></script>
+</body>
+</html>

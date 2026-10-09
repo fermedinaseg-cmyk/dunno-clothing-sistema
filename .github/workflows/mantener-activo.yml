@@ -1,0 +1,21 @@
+name: Mantener activo el proyecto
+# Supabase pausa los proyectos gratuitos que pasan una semana sin uso.
+# Este aviso sencillo consulta el catálogo público cada 3 días para evitarlo.
+on:
+  schedule:
+    - cron: '17 9 */3 * *'
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Consultar el catálogo público
+        run: |
+          URL=$(grep -oP "SUPABASE_URL = '\K[^']+" web/config.js)
+          KEY=$(grep -oP "SUPABASE_ANON_KEY = '\K[^']+" web/config.js)
+          case "$URL" in *TU-PROYECTO*) echo "config.js aún no está configurado"; exit 0;; esac
+          curl -fsS -X POST "$URL/rest/v1/rpc/catalogo_publico" \
+            -H "apikey: $KEY" -H "Authorization: Bearer $KEY" \
+            -H "Content-Type: application/json" -d '{"p_sucursal":"tarija"}' -o /dev/null
+          echo "Proyecto activo"
