@@ -2,6 +2,9 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import { SUPABASE_URL, SUPABASE_ANON_KEY, WHATSAPP } from '../../config.js';
 
+// Acepta la dirección con o sin '/rest/v1/' al final: usamos solo el dominio
+const BASE = (() => { try { return new URL(SUPABASE_URL).origin; } catch (e) { return SUPABASE_URL; } })();
+
 // ---------- utilidades ----------
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -24,8 +27,8 @@ const SUCS = [
 const sucN = (id) => (SUCS.find((s) => s.id === id) || {}).n || id;
 
 const configurado = !String(SUPABASE_URL).includes('TU-PROYECTO') && !String(SUPABASE_ANON_KEY).includes('PEGA');
-const sb = configurado ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } }) : null;
-const foto = (p) => (!p ? '' : /^https?:/.test(p) ? p : `${SUPABASE_URL}/storage/v1/object/public/fotos/${p}`);
+const sb = configurado ? createClient(BASE, SUPABASE_ANON_KEY, { auth: { persistSession: false } }) : null;
+const foto = (p) => (!p ? '' : /^https?:/.test(p) ? p : `${BASE}/storage/v1/object/public/fotos/${p}`);
 
 const ICON = {
   search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',

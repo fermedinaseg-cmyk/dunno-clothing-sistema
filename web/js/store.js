@@ -3,12 +3,15 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from '../config.js';
 
+// Acepta la dirección con o sin '/rest/v1/' al final: usamos solo el dominio
+const BASE = (() => { try { return new URL(SUPABASE_URL).origin; } catch (e) { return SUPABASE_URL; } })();
+
 const configurado =
   SUPABASE_URL && SUPABASE_ANON_KEY &&
   !String(SUPABASE_URL).includes('TU-PROYECTO') && !String(SUPABASE_ANON_KEY).includes('PEGA');
 
 export const sb = configurado
-  ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } })
+  ? createClient(BASE, SUPABASE_ANON_KEY, { auth: { persistSession: true, autoRefreshToken: true } })
   : null;
 
 const PAGE = 1000;
