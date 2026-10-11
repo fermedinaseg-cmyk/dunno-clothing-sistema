@@ -2,6 +2,9 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
 import { SUPABASE_URL, SUPABASE_ANON_KEY, WHATSAPP } from '../../config.js';
 
+// Acepta la dirección con o sin '/rest/v1/' al final: usamos solo el dominio
+const BASE = (() => { try { return new URL(SUPABASE_URL).origin; } catch (e) { return SUPABASE_URL; } })();
+
 // ---------- utilidades ----------
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -24,8 +27,8 @@ const SUCS = [
 const sucN = (id) => (SUCS.find((s) => s.id === id) || {}).n || id;
 
 const configurado = !String(SUPABASE_URL).includes('TU-PROYECTO') && !String(SUPABASE_ANON_KEY).includes('PEGA');
-const sb = configurado ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY, { auth: { persistSession: false } }) : null;
-const foto = (p) => (!p ? '' : /^https?:/.test(p) ? p : `${SUPABASE_URL}/storage/v1/object/public/fotos/${p}`);
+const sb = configurado ? createClient(BASE, SUPABASE_ANON_KEY, { auth: { persistSession: false } }) : null;
+const foto = (p) => (!p ? '' : /^https?:/.test(p) ? p : `${BASE}/storage/v1/object/public/fotos/${p}`);
 
 const ICON = {
   search: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
@@ -139,39 +142,52 @@ function cardHtml(p) {
   </article>`;
 }
 
+const seccionCat = (c, ps, max = 8) => `<section class="sec"><div class="sec-h"><h2>${esc(c)}</h2><a href="#/tienda?cat=${encodeURIComponent(c)}">Ver todo →</a></div><div class="grid">${ps.slice(0, max).map(cardHtml).join('')}</div></section>`;
 function vistaHome() {
-  const nov = [...st.items].sort((a, b) => String(b.creado).localeCompare(String(a.creado))).filter((p) => portada(p)).slice(0, 12);
-  const dest = st.items.filter((p) => p.destacado && portada(p)).slice(0, 12);
+  const conFoto = st.items.filter((p) => portada(p));
+  const nov = [...conFoto].sort((a, b) => String(b.creado).localeCompare(String(a.creado))).slice(0, 8);
+  const dest = conFoto.filter((p) => p.destacado).slice(0, 8);
+  const ofertas = conFoto.filter(enOferta).slice(0, 8);
   const hero = aj('hero') || DEF.hero;
   const heroFoto = (st.aj.hero && st.aj.hero.foto) || (dest[0] || nov[0] ? portada(dest[0] || nov[0]) : '');
   const cats = [...new Set(st.items.map((p) => p.categoria))].map((c) => {
-    const ps = st.items.filter((p) => p.categoria === c && portada(p));
-    return { c, n: st.items.filter((p) => p.categoria === c).length, img: ps[0] ? portada(ps[0]) : '' };
-  }).sort((a, b) => b.n - a.n);
+    const ps = conFoto.filter((p) => p.categoria === c);
+    return { c, ps, n: st.items.filter((p) => p.categoria === c).length, img: ps[0] ? portada(ps[0]) : '' };
+  }).filter((x) => x.ps.length).sort((a, b) => b.n - a.n);
   const marcas = [...new Set(st.items.map((p) => p.marca))];
+  const gratis = (aj('envio') || {}).gratis_desde || 0;
+  const t2 = nov[1] || nov[0]; const t3 = (ofertas[0] || dest[0] || nov[2] || nov[0]);
+  const wa = waLink('Hola, quiero consultar por una prenda de la tienda.');
   return `
   <section class="hero">
-    <div class="hero-t">
-      <span class="muted">${esc(sucN(st.suc))} · ${st.items.length} prendas disponibles hoy</span>
+    ${heroFoto ? `<img src="${esc(foto(heroFoto))}" alt="" fetchpriority="high">` : ''}
+    <div class="hero-t wrap">
+      <span class="kick">${esc(sucN(st.suc))} · ${st.items.length} prendas disponibles hoy</span>
       <h1>${esc(hero.titulo || DEF.hero.titulo)}</h1>
       <p>${esc(hero.texto || DEF.hero.texto)}</p>
-      <div><a class="btn acc" href="#/tienda?o=nuevo">${esc(hero.boton || DEF.hero.boton)}</a> <a class="btn ghost" href="#/tienda">Ver todo</a></div>
+      <div class="hero-b"><a class="btn light" href="#/tienda?o=nuevo">${esc(hero.boton || DEF.hero.boton)}</a><a class="btn outline" href="#/tienda">Ver todo</a></div>
     </div>
-    <div class="hero-i">${heroFoto ? `<img src="${esc(foto(heroFoto))}" alt="" fetchpriority="high">` : ''}</div>
   </section>
+  <div class="strip" aria-label="Beneficios"><div class="wrap strip-in">
+    <span>${ICON.store} Retiro gratis en tienda</span><span>${ICON.truck} Delivery y envíos a todo Bolivia</span><span>${ICON.qr} Paga con QR o transferencia</span><span>${ICON.swap} Cambios en 7 días</span>
+  </div></div>
   <div class="wrap">
-    <div class="sec" style="padding-bottom:0"><div class="trust">
-      <div>${ICON.store}<p style="margin:0"><b>Retiro gratis</b><span>En nuestras 3 sucursales</span></p></div>
-      <div>${ICON.truck}<p style="margin:0"><b>Delivery y envíos</b><span>En tu ciudad y a todo Bolivia</span></p></div>
-      <div>${ICON.qr}<p style="margin:0"><b>Paga con QR</b><span>Transferencia o contra entrega</span></p></div>
-      <div>${ICON.swap}<p style="margin:0"><b>Cambios fáciles</b><span>7 días para cambiar tu talla</span></p></div>
-    </div></div>
+    <section class="tiles">
+      <a class="tile" href="#/tienda?o=nuevo">${t2 ? `<img src="${esc(foto(portada(t2)))}" alt="" loading="lazy">` : ''}<span><small>Recién llegado</small>New arrivals</span></a>
+      <a class="tile" href="${ofertas.length ? '#/tienda?oferta=1' : '#/tienda'}">${t3 ? `<img src="${esc(foto(portada(t3)))}" alt="" loading="lazy">` : ''}<span><small>${ofertas.length ? 'Precios especiales' : 'Lo más pedido'}</small>${ofertas.length ? 'Ofertas' : 'Favoritos de la calle'}</span></a>
+    </section>
     <section class="sec"><div class="sec-h"><h2>Compra por categoría</h2></div>
-      <div class="cats">${cats.map((x) => `<a class="cat" href="#/tienda?cat=${encodeURIComponent(x.c)}">${x.img ? `<img src="${esc(foto(x.img))}" alt="" loading="lazy">` : ''}<span>${esc(x.c)}<small>${x.n} modelos</small></span></a>`).join('')}</div></section>
-    ${nov.length ? `<section class="sec" style="padding-top:0"><div class="sec-h"><h2>Novedades</h2><a href="#/tienda?o=nuevo">Ver todas →</a></div><div class="row-scroll">${nov.map(cardHtml).join('')}</div></section>` : ''}
-    ${dest.length ? `<section class="sec" style="padding-top:0"><div class="sec-h"><h2>Lo más pedido</h2><a href="#/tienda">Ver todo →</a></div><div class="row-scroll">${dest.map(cardHtml).join('')}</div></section>` : ''}
-    <section class="sec" style="padding-top:0"><div class="sec-h"><h2>Nuestras marcas</h2></div><div class="brands">${marcas.map((m) => `<a href="#/tienda?marca=${encodeURIComponent(m)}">${esc(m)}</a>`).join('')}</div></section>
-  </div>`;
+      <div class="cats">${cats.map((x) => `<a class="cat" href="#/tienda?cat=${encodeURIComponent(x.c)}"><img src="${esc(foto(x.img))}" alt="" loading="lazy"><span>${esc(x.c)}<small>${x.n} modelos</small></span></a>`).join('')}</div></section>
+    ${nov.length ? `<section class="sec" style="padding-top:0"><div class="sec-h"><h2>New arrivals</h2><a href="#/tienda?o=nuevo">Ver todo →</a></div><div class="grid">${nov.map(cardHtml).join('')}</div></section>` : ''}
+    ${ofertas.length ? `<section class="sec promo-band"><div class="sec-h"><h2>Ofertas</h2><a href="#/tienda?oferta=1">Ver todo →</a></div><div class="grid">${ofertas.map(cardHtml).join('')}</div></section>` : ''}
+    ${dest.length ? `<section class="sec"><div class="sec-h"><h2>Lo más pedido</h2><a href="#/tienda">Ver todo →</a></div><div class="grid">${dest.map(cardHtml).join('')}</div></section>` : ''}
+    ${cats.slice(0, 4).map((x) => seccionCat(x.c, x.ps)).join('')}
+  </div>
+  <section class="band"><div class="wrap band-in">
+    <div><h2>Envíos a todo Bolivia</h2><p>${gratis > 0 ? `Delivery gratis desde ${money(gratis)} en tu ciudad. ` : ''}Retira gratis en Tarija, Cochabamba o Santa Cruz, o recíbelo en tu casa.</p></div>
+    ${wa ? `<a class="btn light" target="_blank" rel="noopener" href="${esc(wa)}">Escríbenos por WhatsApp</a>` : '<a class="btn light" href="#/info/envios">Ver envíos</a>'}
+  </div></section>
+  <div class="wrap"><section class="sec"><div class="sec-h"><h2>Nuestras marcas</h2></div><div class="brands">${marcas.map((m) => `<a href="#/tienda?marca=${encodeURIComponent(m)}">${esc(m)}</a>`).join('')}</div></section></div>`;
 }
 
 // --- Catálogo con filtros ---
@@ -513,26 +529,41 @@ function vistaInfo(tema) {
 }
 
 // ---------- estructura y enrutado ----------
+function redes() {
+  const r = st.aj.redes || {};
+  const l = [['instagram', 'Instagram'], ['tiktok', 'TikTok'], ['facebook', 'Facebook']].filter(([k]) => r[k]);
+  return l.length ? `<div class="soc">${l.map(([k, n]) => `<a target="_blank" rel="noopener" href="${esc(r[k])}">${n}</a>`).join('')}</div>` : '';
+}
+function pintarNav() {
+  const n = $('#nav'); if (!n) return;
+  const cats = [...new Set(st.items.map((p) => p.categoria))].sort();
+  const hay = st.items.some(enOferta);
+  n.innerHTML = '<a href="#/tienda">Ver todo</a><a href="#/tienda?o=nuevo">New arrivals</a>' +
+    cats.map((c) => `<a href="#/tienda?cat=${encodeURIComponent(c)}">${esc(c)}</a>`).join('') +
+    (hay ? '<a class="hot" href="#/tienda?oferta=1">Ofertas</a>' : '');
+}
 function estructura() {
   const nombre = aj('nombre');
   document.body.innerHTML = `
-  <div class="bar">${esc(aj('anuncio'))}</div>
+  <div class="bar"><span>${esc(aj('anuncio'))}</span></div>
   <header class="head"><div class="wrap head-in">
+    <form class="search" id="sform" role="search">${ICON.search}<input type="search" id="q" placeholder="Buscar" aria-label="Buscar"></form>
     <a class="logo" href="#/" aria-label="${esc(nombre)} inicio">DUNNO</a>
-    <nav class="nav" aria-label="Principal"><a href="#/tienda?o=nuevo">Novedades</a><a href="#/tienda?cat=Polera">Poleras</a><a href="#/tienda?cat=Hoddie">Hoddies</a><a href="#/tienda?cat=Pantal%C3%B3n">Pantalones</a><a href="#/tienda?oferta=1">Ofertas</a></nav>
-    <span class="sp"></span>
-    <form class="search" id="sform" role="search">${ICON.search}<input type="search" id="q" placeholder="Buscar prendas" aria-label="Buscar"></form>
-    <button class="suc" data-act="suc" aria-label="Cambiar sucursal">📍 ${esc(sucN(st.suc))}</button>
-    <a class="ic" href="#/favoritos" aria-label="Favoritos">${ICON.heart}</a>
-    <button class="ic" data-act="abrir" aria-label="Abrir carrito">${ICON.bag}<span class="badge" id="cbadge" data-n="0"></span></button>
-  </div><form class="msearch" id="msform" role="search"><input type="search" id="mq" placeholder="Buscar prendas" aria-label="Buscar"></form></header>
+    <div class="head-r">
+      <button class="suc" data-act="suc" aria-label="Cambiar sucursal">📍 ${esc(sucN(st.suc))}</button>
+      <a class="ic" href="#/favoritos" aria-label="Favoritos">${ICON.heart}</a>
+      <button class="ic" data-act="abrir" aria-label="Abrir carrito">${ICON.bag}<span class="badge" id="cbadge" data-n="0"></span></button>
+    </div>
+  </div>
+  <nav class="nav" id="nav" aria-label="Principal"></nav>
+  <form class="msearch" id="msform" role="search"><input type="search" id="mq" placeholder="Buscar prendas" aria-label="Buscar"></form></header>
   <main id="app" tabindex="-1"></main>
   <footer class="foot"><div class="wrap"><div class="foot-g">
-    <div><a class="logo" href="#/">DUNNO</a><p>${esc(aj('horarios'))}</p></div>
+    <div><a class="logo" href="#/">DUNNO</a><p>${esc(aj('horarios'))}</p>${redes()}</div>
     <div><h3>Comprar</h3><a href="#/tienda?o=nuevo">Novedades</a><a href="#/tienda">Todo</a><a href="#/tienda?oferta=1">Ofertas</a><a href="#/favoritos">Favoritos</a></div>
     <div><h3>Ayuda</h3><a href="#/info/envios">Envíos y retiro</a><a href="#/info/pagos">Formas de pago</a><a href="#/info/cambios">Cambios</a><a href="#/seguimiento">Seguir mi pedido</a></div>
     <div><h3>Sucursales</h3>${SUCS.map((s) => `<a href="#/info/contacto">${s.n}</a>`).join('')}</div>
-  </div><small>© ${new Date().getFullYear()} ${esc(nombre)}. Precios en bolivianos (Bs).</small></div></footer>
+  </div><div class="pay-logos" aria-label="Formas de pago"><span>QR</span><span>Transferencia</span><span>Contra entrega</span><span>Pago en tienda</span></div><small>© ${new Date().getFullYear()} ${esc(nombre)}. Precios en bolivianos (Bs).</small></div></footer>
   <div class="scrim" id="scrim" data-act="cerrar"></div>
   <aside class="drawer" id="drawer" aria-label="Carrito"><div class="dr-h"><h2>Tu carrito</h2><button class="ic" data-act="cerrar" aria-label="Cerrar">✕</button></div><div class="dr-b" id="dr-b"></div><div class="dr-f" id="dr-f"></div></aside>
   <div class="toast" id="toast" role="status"></div>
@@ -552,6 +583,7 @@ function modalSucursal(obligatorio) {
 
 async function ruta() {
   clearInterval(ordTimer);
+  pintarNav();
   window.scrollTo(0, 0);
   document.title = 'Dunno Clothing · Tienda online de streetwear en Bolivia';
   const h = location.hash.slice(1) || '/';
