@@ -73,9 +73,10 @@ async function cargarCatalogo() {
   st.byId = new Map(st.items.map((p) => [p.id, p]));
   st.listo = true;
 }
-const colores = (p) => [...new Set(p.variantes.map((v) => v.c))];
-const tallasDe = (p, c) => [...new Set(p.variantes.filter((v) => !c || v.c === c).map((v) => v.t))]
-  .sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
+const ORD = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
+const ordTalla = (a, b) => { const i = ORD.indexOf(a), j = ORD.indexOf(b); return i >= 0 && j >= 0 ? i - j : i >= 0 ? -1 : j >= 0 ? 1 : a.localeCompare(b, 'es', { numeric: true }); };
+const colores = (p) => [...new Set(p.variantes.filter((v) => v.q > 0).map((v) => v.c))];
+const tallasDe = (p, c) => [...new Set(p.variantes.filter((v) => (!c || v.c === c) && v.q > 0).map((v) => v.t))].sort(ordTalla);
 const stockDe = (p, t, c) => { const v = p.variantes.find((x) => x.t === t && x.c === c); return v ? v.q : 0; };
 const fcFoto = (p, c) => { const f = (p.fc || []).find((x) => x.c === c); return f ? f.f : null; };
 function galeria(p, c) {
@@ -121,24 +122,27 @@ let toastT;
 function toast(m) { const t = toastEl(); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
 
 function cardHtml(p) {
+  const cs = colores(p);
   const c2 = (p.fotos || [])[1] || ((p.fc || [])[1] || {}).f;
   const tags = [
     enOferta(p) ? `<span class="tag hot">-${pctOff(p)}%</span>` : '',
     p.nuevo ? '<span class="tag">Nuevo</span>' : '',
     ultimas(p) ? '<span class="tag low">Últimas</span>' : '',
   ].join('');
-  const cs = colores(p);
-  return `<article class="card">
+  const sw = cs.length > 1 ? `<div class="swc" role="group" aria-label="Colores disponibles">${cs.slice(0, 6).map((c) => { const f = fcFoto(p, c); return f ? `<button type="button" class="sc" data-act="cardcolor" data-p="${esc(p.id)}" data-c="${esc(c)}" title="${esc(c)}" aria-label="${esc(c)}"><img src="${esc(foto(f))}" alt="" loading="lazy"></button>` : `<span class="sc t" title="${esc(c)}">${esc(c.slice(0, 2))}</span>`; }).join('')}${cs.length > 6 ? `<span class="more">+${cs.length - 6}</span>` : ''}</div>` : '';
+  const tl = tallasDe(p, '');
+  return `<article class="card" data-card="${esc(p.id)}">
     <a class="pic" href="#/p/${esc(p.id)}" aria-label="${esc(cap(p.modelo))}">
-      ${portada(p) ? `<img src="${esc(foto(portada(p)))}" alt="${esc(cap(p.modelo))}" loading="lazy" decoding="async">` : `<div class="ph">${esc(String(p.modelo).charAt(0))}</div>`}
-      ${c2 && portada(p) ? `<img src="${esc(foto(c2))}" alt="" loading="lazy" decoding="async">` : ''}
+      ${portada(p) ? `<img class="im1" src="${esc(foto(portada(p)))}" alt="${esc(cap(p.modelo))}" loading="lazy" decoding="async">` : `<div class="ph">${esc(String(p.modelo).charAt(0))}</div>`}
+      ${c2 && portada(p) ? `<img class="im2" src="${esc(foto(c2))}" alt="" loading="lazy" decoding="async">` : ''}
     </a>
     <div class="tags">${tags}</div>
     <button class="fav" data-act="fav" data-p="${esc(p.id)}" aria-pressed="${st.fav.includes(p.id)}" aria-label="Guardar en favoritos">${ICON.heart}</button>
     <a class="nm" href="#/p/${esc(p.id)}">${esc(cap(p.modelo))}</a>
     <div class="mt">${esc(cap(p.marca))} · ${esc(p.categoria)}</div>
     <div class="pr"><span>${money(p.precio)}</span>${enOferta(p) ? `<s>${money(p.precio_antes)}</s>` : ''}</div>
-    <div class="dots"><i>${cs.length} color${cs.length === 1 ? '' : 'es'}</i></div>
+    ${sw}
+    <div class="szs" aria-label="Tallas disponibles">${tl.map((t) => `<span>${esc(t)}</span>`).join('')}</div>
   </article>`;
 }
 
@@ -193,7 +197,7 @@ function vistaHome() {
 // --- Catálogo con filtros ---
 function leerFiltros(qs) {
   const p = new URLSearchParams(qs || '');
-  return { cat: p.get('cat') || '', marca: p.get('marca') || '', t: p.get('t') || '', c: p.get('c') || '', q: p.get('q') || '', o: p.get('o') || 'nuevo', min: p.get('min') || '', max: p.get('max') || '', oferta: p.get('oferta') === '1' };
+  return { cat: p.get('cat') || '', marca: p.get('marca') || '', t: '', c: '', q: p.get('q') || '', o: p.get('o') || 'nuevo', min: p.get('min') || '', max: p.get('max') || '', oferta: p.get('oferta') === '1' };
 }
 function urlFiltros(f) {
   const p = new URLSearchParams();
@@ -224,8 +228,6 @@ function vistaTienda(qs) {
   const mostrar = lista.slice(0, st.pagina * 24);
   const cats = [...new Set(todas.map((p) => p.categoria))];
   const marcas = [...new Set(todas.map((p) => p.marca))];
-  const tallas = [...new Set(todas.flatMap((p) => p.variantes.map((v) => v.t)))].sort((a, b) => a.localeCompare(b, 'es', { numeric: true }));
-  const cols = [...new Set(todas.flatMap((p) => p.variantes.map((v) => v.c)))].sort();
   const chips = (arr, k, cur) => arr.map((x) => `<button class="chip" aria-pressed="${cur === x}" data-act="filtro" data-k="${k}" data-v="${esc(x)}">${esc(x)}</button>`).join('');
   return `<div class="wrap">
     <div class="page-h"><div class="crumbs"><a href="#/">Inicio</a> / Tienda</div><h1>${esc(f.cat || (f.marca ? cap(f.marca) : f.oferta ? 'Ofertas' : 'Todo'))}</h1></div>
@@ -233,8 +235,6 @@ function vistaTienda(qs) {
       <aside class="filters" id="filters" aria-label="Filtros">
         <div><h3>Categoría</h3><div class="fl">${chips(cats, 'cat', f.cat)}</div></div>
         <div><h3>Marca</h3><div class="fl">${chips(marcas, 'marca', f.marca)}</div></div>
-        <div><h3>Talla</h3><div class="fl">${chips(tallas, 't', f.t)}</div></div>
-        <div><h3>Color</h3><div class="fl">${chips(cols, 'c', f.c)}</div></div>
         <div><h3>Precio (Bs)</h3><div class="price-r"><input type="number" min="0" inputmode="numeric" placeholder="Mín" id="pmin" value="${esc(f.min)}" aria-label="Precio mínimo"><span>–</span><input type="number" min="0" inputmode="numeric" placeholder="Máx" id="pmax" value="${esc(f.max)}" aria-label="Precio máximo"></div></div>
         <div><button class="chip" aria-pressed="${f.oferta}" data-act="filtro" data-k="oferta" data-v="${f.oferta ? '' : '1'}">Solo ofertas</button></div>
         <div><a href="#/tienda" class="btn ghost sm">Quitar filtros</a></div>
@@ -257,11 +257,16 @@ function vistaTienda(qs) {
 }
 
 // --- Producto ---
-function vistaProducto(id) {
+function vistaProducto(id, qs) {
   const p = st.byId.get(id);
   if (!p) return `<div class="wrap"><div class="empty"><h2>Esta prenda ya no está disponible</h2><p>Se agotó o ya no se vende en ${esc(sucN(st.suc))}.</p><a class="btn" href="#/tienda">Ver la tienda</a></div></div>`;
   const cs = colores(p);
-  if (!st.pdp || st.pdp.id !== id) st.pdp = { id, c: cs.length === 1 ? cs[0] : '', t: '', q: 1, img: 0 };
+  const pre = new URLSearchParams(qs || '').get('c');
+  if (!st.pdp || st.pdp.id !== id || (pre && cs.includes(pre) && st.pdp.c !== pre)) {
+    const c0 = pre && cs.includes(pre) ? pre : cs[0] || '';
+    const ts0 = tallasDe(p, c0);
+    st.pdp = { id, c: c0, t: ts0.length === 1 ? ts0[0] : '', q: 1, img: 0 };
+  }
   document.title = `${cap(p.modelo)} · ${cap(p.marca)} | Dunno Clothing`;
   const rel = st.items.filter((x) => x.categoria === p.categoria && x.id !== p.id && portada(x)).slice(0, 8);
   return `<div class="wrap">
@@ -277,7 +282,6 @@ function pintarPdp() {
   const gal = galeria(p, s.c);
   if (s.img >= gal.length) s.img = 0;
   const tallas = tallasDe(p, s.c);
-  const todasTallas = tallasDe(p, '');
   const disp = s.t && s.c ? stockDe(p, s.t, s.c) : 0;
   const max = Math.min(disp, 5);
   if (s.q > max && max > 0) s.q = max;
@@ -296,7 +300,7 @@ function pintarPdp() {
       <div><div class="lbl"><span>Color${s.c ? ': ' + esc(s.c) : ''}</span></div>
         <div class="sw">${cs.map((c) => { const f = fcFoto(p, c); return `<button class="cw" aria-pressed="${s.c === c}" data-act="color" data-v="${esc(c)}">${f ? `<img src="${esc(foto(f))}" alt="">` : ''}${esc(c)}</button>`; }).join('')}</div></div>
       <div><div class="lbl"><span>Talla${s.t ? ': ' + esc(s.t) : ''}</span><a href="#guia" data-act="guia" style="font-weight:500">Guía de tallas</a></div>
-        <div class="sw">${todasTallas.map((t) => { const ok = s.c ? tallas.includes(t) : true; return `<button aria-pressed="${s.t === t}" data-act="talla" data-v="${esc(t)}" ${ok ? '' : 'disabled'}>${esc(t)}</button>`; }).join('')}</div>
+        <div class="sw">${tallas.map((t) => `<button aria-pressed="${s.t === t}" data-act="talla" data-v="${esc(t)}">${esc(t)}</button>`).join('')}</div>
         ${msgStock}</div>
       <div class="buy">
         <div class="qty" role="group" aria-label="Cantidad"><button data-act="qmenos" aria-label="Menos">−</button><span class="num">${s.q}</span><button data-act="qmas" aria-label="Más">+</button></div>
@@ -595,7 +599,7 @@ async function ruta() {
   try {
     if (!parts.length) { set(vistaHome()); }
     else if (parts[0] === 'tienda') { st.pagina = 1; set(vistaTienda(qs)); document.title = 'Tienda | Dunno Clothing'; }
-    else if (parts[0] === 'p') { set(vistaProducto(decodeURIComponent(parts[1] || ''))); pintarPdp(); }
+    else if (parts[0] === 'p') { set(vistaProducto(decodeURIComponent(parts[1] || ''), qs)); pintarPdp(); }
     else if (parts[0] === 'favoritos') { set(vistaFavoritos()); }
     else if (parts[0] === 'checkout') { set(vistaCheckout()); }
     else if (parts[0] === 'pedido') { set('<div class="wrap"><div class="empty"><p>Cargando tu pedido…</p></div></div>'); set(await vistaPedido(parts[1].toUpperCase())); }
@@ -621,6 +625,12 @@ document.addEventListener('click', async (e) => {
     if (nuevo !== st.suc) { st.suc = nuevo; LS.set('dn_suc', nuevo); st.listo = false; st.pdp = null; st.promo = null; $('#modal').classList.remove('on'); await iniciarSucursal(); }
     else $('#modal').classList.remove('on');
   }
+  else if (a === 'cardcolor') {
+    e.preventDefault(); e.stopPropagation();
+    const p = st.byId.get(el.dataset.p); const f = p && fcFoto(p, el.dataset.c);
+    const card = el.closest('.card');
+    if (f && card) { const im = card.querySelector('img.im1'); if (im) im.src = foto(f); const hr = '#/p/' + p.id + '?c=' + encodeURIComponent(el.dataset.c); card.querySelectorAll('a').forEach((x) => { x.href = hr; }); card.querySelectorAll('.sc').forEach((x) => x.classList.toggle('on', x === el)); }
+  }
   else if (a === 'fav') {
     e.preventDefault();
     const id = el.dataset.p; const i = st.fav.indexOf(id);
@@ -632,7 +642,7 @@ document.addEventListener('click', async (e) => {
   else if (a === 'filtros-toggle') $('#filters').classList.toggle('open');
   else if (a === 'mas') { st.pagina++; const y = window.scrollY; app().innerHTML = vistaTienda(location.hash.split('?')[1]); window.scrollTo(0, y); }
   else if (a === 'img') { st.pdp.img = +el.dataset.i; pintarPdp(); }
-  else if (a === 'color') { const s = st.pdp; s.c = s.c === el.dataset.v ? '' : el.dataset.v; s.img = 0; const p = st.byId.get(s.id); if (s.t && s.c && !stockDe(p, s.t, s.c)) s.t = ''; pintarPdp(); }
+  else if (a === 'color') { const s = st.pdp; s.c = el.dataset.v; s.img = 0; const p = st.byId.get(s.id); if (s.t && !stockDe(p, s.t, s.c)) s.t = ''; const ts = tallasDe(p, s.c); if (!s.t && ts.length === 1) s.t = ts[0]; pintarPdp(); }
   else if (a === 'talla') { const s = st.pdp; s.t = s.t === el.dataset.v ? '' : el.dataset.v; pintarPdp(); }
   else if (a === 'qmas') { const s = st.pdp; const p = st.byId.get(s.id); const m = Math.min(stockDe(p, s.t, s.c), 5); if (s.q < m) s.q++; else toast('No hay más unidades de esa talla y color'); pintarPdp(); }
   else if (a === 'qmenos') { const s = st.pdp; if (s.q > 1) s.q--; pintarPdp(); }
