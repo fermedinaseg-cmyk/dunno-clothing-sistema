@@ -694,6 +694,8 @@ document.addEventListener('click',async e=>{
     case 'pick':openPicker(el.dataset.p);break;
     case 'addv':{const b=curBranch();const p=prod(el.dataset.p);const t=el.dataset.t,c=el.dataset.c;const ex=ui.cart.find(i=>i.p===p.id&&i.t===t&&i.c===c);const have=ex?ex.q:0;if(avail(b,p.id,t,c)<=have)break;if(ex)ex.q++;else ui.cart.push({p:p.id,t,c,q:1,pr:p.precio});openPicker(p.id);rerenderCart();break}
     case 'qty':{const i=ui.cart[+el.dataset.i];if(!i)break;const d=+el.dataset.d;if(d>0&&avail(curBranch(),i.p,i.t,i.c)<=i.q){toast('No hay más stock de esa variante');break}i.q+=d;if(i.q<=0)ui.cart.splice(+el.dataset.i,1);rerenderCart();break}
+    case 'ph-del':{const it=ui[el.dataset.k]&&ui[el.dataset.k].items;const i=+el.dataset.i;if(!it||!it[i])break;const x=it.splice(i,1)[0];if(x&&x.blob&&x.url)try{URL.revokeObjectURL(x.url)}catch(er){}refreshStrip(el.dataset.k);break}
+    case 'ph-cover':{const it=ui[el.dataset.k]&&ui[el.dataset.k].items;const i=+el.dataset.i;if(!it||!it[i])break;it.unshift(it.splice(i,1)[0]);refreshStrip(el.dataset.k);break}
     case 'clear-cart':ui.cart=[];ui.disc=0;rerenderCart();break;
     case 'pay':if(el.dataset.v==='mix'){ui.mixed=true}else{ui.mixed=false;ui.pay=el.dataset.v}rerenderCart();break;
     case 'sell':sell();break;
