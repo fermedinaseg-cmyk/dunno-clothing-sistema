@@ -21,6 +21,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
+      # Cada publicación lleva un número de versión distinto en los archivos, para que los navegadores
+      # no sigan mostrando la versión anterior guardada en caché.
+      - name: Poner número de versión
+        run: grep -rl '__V__' web | xargs sed -i "s/__V__/${GITHUB_SHA::10}/g"
       - uses: actions/upload-pages-artifact@v3
         with:
           path: web

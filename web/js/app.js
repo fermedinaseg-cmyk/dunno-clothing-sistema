@@ -1,5 +1,5 @@
 
-import {Store} from './store.js';
+import {Store} from './store.js?v=__V__';
 
 (async function(){
 const BR=[{id:'tarija',n:'Tarija',c:'var(--s1)'},{id:'cochabamba',n:'Cochabamba',c:'var(--s2)'},{id:'santacruz',n:'Santa Cruz',c:'var(--s3)'}];
