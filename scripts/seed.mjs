@@ -1,5 +1,5 @@
-// Carga los datos iniciales en Supabase: productos, inventario del 8 oct 2026,
-// historial de ventas (jun-sep 2026) y las 375 fotos.
+// Carga los datos iniciales en Supabase: productos, inventario del 12 oct 2026,
+// historial de ventas (jun-sep 2026) y las fotos.
 // Es seguro ejecutarlo más de una vez (reemplaza, no duplica).
 //
 // Variables necesarias: SUPABASE_URL y SUPABASE_SERVICE_ROLE_KEY.
@@ -55,7 +55,18 @@ try {
   if (e0) throw new Error('No encuentro la tabla "docs". Primero ejecuta supabase/schema.sql en el SQL Editor. (' + e0.message + ')');
   if (!args.has('--sin-fotos')) await subirFotos();
   await subirDocs('products', leer('products.json'));
-  if (!args.has('--sin-inventario')) await subirDocs('entries', leer('entries.json'));
+  if (!args.has('--sin-inventario')) {
+    const nuevas = leer('entries.json');
+    await subirDocs('entries', nuevas);
+    // El inventario nuevo reemplaza a los conteos anteriores (ids que empiezan con "inv-"), para no duplicar stock
+    const { data: previos } = await sb.from('docs').select('id').eq('coleccion', 'entries').like('id', 'inv-%');
+    const sobran = (previos || []).map((d) => d.id).filter((id) => !nuevas.some((n) => n.id === id));
+    if (sobran.length) {
+      const { error } = await sb.from('docs').delete().eq('coleccion', 'entries').in('id', sobran);
+      if (error) throw new Error('entries: ' + error.message);
+      console.log(`✔ entries: ${sobran.length} conteos anteriores reemplazados`);
+    }
+  }
   if (!args.has('--sin-historial')) await subirDocs('hist', leer('hist.json'));
   // Ajustes de la tienda online: solo se crean si todavía no existen (no pisa lo que ya configuraste)
   const { data: yaHay } = await sb.from('docs').select('id').eq('coleccion', 'settings').eq('id', 'tienda').maybeSingle();

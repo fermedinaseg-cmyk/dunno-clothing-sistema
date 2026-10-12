@@ -11,7 +11,7 @@ Sistema web para las 3 sucursales (Tarija, Cochabamba y Santa Cruz):
 - **Tienda online** para tus clientes (la página principal): catálogo con filtros, página de cada prenda, carrito, compra sin cuenta, pago con QR o transferencia, delivery o retiro, códigos de descuento y seguimiento del pedido. Usa **el mismo inventario** del sistema: lo que se vende en tienda o en línea se descuenta de un solo stock.
 - **Cuentas separadas**: el dueño ve todo; cada vendedor solo vende y ve lo de su sucursal.
 
-Ya trae cargados tus datos: 217 modelos, el inventario del 8 de octubre de 2026 (2.045 prendas), el historial de ventas de junio a septiembre y las 375 fotos.
+Ya trae cargados tus datos: 226 modelos, el inventario del 12 de octubre de 2026 (2.234 prendas), el historial de ventas de junio a septiembre y las 399 fotos.
 
 ## Cómo se publica
 
