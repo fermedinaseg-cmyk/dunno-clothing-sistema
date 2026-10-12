@@ -79,7 +79,7 @@ if(admin)loadPerfiles();
 const nameOf=id=>{if(!id)return '—';if(id===myId)return me.name||'Yo';const p=S.perfiles.find(x=>x.id===id);return p?(p.nombre||p.email):'Usuario '+String(id).slice(-4)};
 // ---- shell ----
 const pendientes=()=>S.orders.filter(o=>o.estado==='pendiente'&&Date.now()<o.ts+(S.settings.hold_horas||12)*3600000&&(o.pago&&o.pago.comprobante)||o.estado==='pagado').length;
-function tabsFor(){return admin?[['dash','Dashboard'],['vender','Vender'],['pedidos','Pedidos'+(pendientes()?' ('+pendientes()+')':'')],['catalogo','Catálogo'],['nueva','Agregar prenda'],['inv','Inventario'],['drops','Drops'],['ventas','Ventas'],['prod','Productos'],['tienda','Tienda online'],['equipo','Equipo']]:[['vender','Vender'],['catalogo','Catálogo'],['ventas','Mis ventas']]}
+function tabsFor(){return admin?[['dash','Dashboard'],['vender','Vender'],['pedidos','Pedidos'+(pendientes()?' ('+pendientes()+')':'')],['catalogo','Catálogo'],['nueva','Agregar prenda'],['inv','Inventario'],['ventas','Ventas'],['prod','Productos'],['tienda','Tienda online'],['equipo','Equipo']]:[['vender','Vender'],['catalogo','Catálogo'],['ventas','Mis ventas']]}
 if(!ui.tab)ui.tab=admin?'dash':'vender';
 function curBranch(){const m=mine();if(m)return m;if(!ui.branch)ui.branch='tarija';return ui.branch}
 function render(){
@@ -469,7 +469,7 @@ VIEWS.nueva=()=>{
     <h3 style="margin-top:18px">3. Stock inicial <span class="muted sm" style="font-weight:400">(opcional)</span></h3>
     <div class="form-grid" style="margin:8px 0">
       <div class="fgroup"><span class="flabel">Sucursal</span><select data-nf="suc" data-keep>${BR.map(b=>`<option value="${b.id}" ${f.suc===b.id?'selected':''}>${b.n}</option>`).join('')}</select></div>
-      <div class="fgroup"><span class="flabel">Drop</span><select data-nf="drop" data-keep><option value="">Sin drop</option>${S.drops.map(d=>`<option value="${esc(d.id)}" ${f.drop===d.id?'selected':''}>${esc(d.nombre)}</option>`).join('')}</select></div></div>
+</div>
     ${f.lines.map((l,i)=>`<div class="lrow3"><input type="text" data-nfl="t" data-i="${i}" data-keep list="dl-talla" placeholder="Talla" value="${esc(l.t)}"><input type="text" data-nfl="c" data-i="${i}" data-keep list="dl-color" placeholder="Color" value="${esc(l.c)}"><input type="number" data-nfl="q" data-i="${i}" data-keep min="1" value="${esc(l.q)}"><button class="btn sec sm" type="button" data-act="nf-rm" data-i="${i}" aria-label="Quitar">×</button></div>`).join('')}
     <div class="row"><button class="btn sec sm" data-act="nf-add">+ Agregar talla o color</button></div>
     <p class="err" id="nf-err"></p>
@@ -594,7 +594,7 @@ function openMov(tipo,dropId){
   openModal(`<div class="mhead"><h2>${titles[tipo]}</h2><button class="btn sec sm" data-act="close">Cerrar</button></div>
   <div class="form-grid">
     ${tipo==='transferencia'?`<div class="fgroup"><span class="flabel">Sale de</span><select id="m-origen">${BR.map(b=>`<option value="${b.id}">${b.n}</option>`).join('')}</select></div><div class="fgroup"><span class="flabel">Llega a</span><select id="m-dest">${BR.map((b,i)=>`<option value="${b.id}" ${i===1?'selected':''}>${b.n}</option>`).join('')}</select></div>`:`<div class="fgroup"><span class="flabel">Sucursal</span><select id="m-dest">${BR.map(b=>`<option value="${b.id}" ${b.id===b0?'selected':''}>${b.n}</option>`).join('')}</select></div>`}
-    ${tipo==='ingreso'?`<div class="fgroup"><span class="flabel">Drop (opcional)</span><select id="m-drop"><option value="">Sin drop</option>${S.drops.map(d=>`<option value="${esc(d.id)}" ${d.id===dropId?'selected':''}>${esc(d.nombre)}</option>`).join('')}</select></div>`:''}
+
     <div class="fgroup"><span class="flabel">${tipo==='ajuste'?'Motivo':'Nota (opcional)'}</span><input type="text" id="m-nota" placeholder="${tipo==='ajuste'?'Ej. conteo físico, prenda dañada':'Ej. pedido de proveedor'}"></div>
   </div>
   <div><div class="flabel" style="margin-bottom:6px">Prendas${tipo==='ajuste'?' (usa cantidad negativa para restar)':''}</div><div id="m-lines">${lineRow()}</div><div class="row"><button class="btn sec sm" data-act="add-line">+ Agregar línea</button><button class="btn sec sm" data-act="toggle-paste">Pegar desde Excel</button></div>
