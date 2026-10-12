@@ -222,13 +222,34 @@ function vistaTienda(qs) {
   const todas = st.items;
   const lista = filtrar(f);
   const mostrar = lista.slice(0, st.pagina * 24);
-  return `<div class="wrap">
-    <div class="page-h"><div class="crumbs"><a href="#/">Inicio</a> / Tienda</div><h1>${esc(f.q ? 'Resultados' : f.cat || (f.marca ? cap(f.marca) : f.oferta ? 'Ofertas' : 'Todo'))}</h1></div>
-    <div class="tools"><span class="muted" aria-live="polite">${lista.length} prenda${lista.length === 1 ? '' : 's'}${f.q ? ` para “${esc(f.q)}”` : ''}</span></div>
-    ${lista.length ? `<div class="grid">${mostrar.map(cardHtml).join('')}</div>
-      ${mostrar.length < lista.length ? `<p style="text-align:center;margin-top:28px"><button class="btn ghost" data-act="mas">Ver más (${lista.length - mostrar.length})</button></p>` : ''}`
-    : `<div class="empty"><h2>No encontramos prendas</h2><p>Escribe a nuestro WhatsApp y te ayudamos a encontrar lo que buscas.</p><a class="btn" href="#/tienda">Ver todo</a></div>`}
-    <div style="height:50px"></div></div>`;
+  const cats = [...new Set(todas.map((p) => p.categoria))];
+  const marcas = [...new Set(todas.map((p) => p.marca))];
+  const chips = (arr, k, cur) => arr.map((x) => `<button class="chip" aria-pressed="${cur === x}" data-act="filtro" data-k="${k}" data-v="${esc(x)}">${esc(x)}</button>`).join('');
+  return `<div class="wrap shop-all">
+    <div class="page-h"><div class="crumbs"><a href="#/">Inicio</a> / Tienda</div><h1>${esc(f.cat || (f.marca ? cap(f.marca) : f.oferta ? 'Ofertas' : 'Todo'))}</h1></div>
+    <div class="shop">
+      <aside class="filters" id="filters" aria-label="Filtros">
+        <div><h3>Categoría</h3><div class="fl">${chips(cats, 'cat', f.cat)}</div></div>
+        <div><h3>Marca</h3><div class="fl">${chips(marcas, 'marca', f.marca)}</div></div>
+        <div><h3>Precio (Bs)</h3><div class="price-r"><input type="number" min="0" inputmode="numeric" placeholder="Mín" id="pmin" value="${esc(f.min)}" aria-label="Precio mínimo"><span>–</span><input type="number" min="0" inputmode="numeric" placeholder="Máx" id="pmax" value="${esc(f.max)}" aria-label="Precio máximo"></div></div>
+        <div><button class="chip" aria-pressed="${f.oferta}" data-act="filtro" data-k="oferta" data-v="${f.oferta ? '' : '1'}">Solo ofertas</button></div>
+        <div><a href="#/tienda" class="btn ghost sm">Quitar filtros</a></div>
+      </aside>
+      <div>
+        <div class="tools">
+          <button class="btn ghost sm fbtn" data-act="filtros-toggle">Filtros</button>
+          <span class="muted" aria-live="polite">${lista.length} prenda${lista.length === 1 ? '' : 's'}</span>
+          <label><span class="sr">Ordenar por</span><select id="orden">
+            <option value="nuevo" ${f.o === 'nuevo' ? 'selected' : ''}>Novedades</option>
+            <option value="precio-asc" ${f.o === 'precio-asc' ? 'selected' : ''}>Precio: menor a mayor</option>
+            <option value="precio-desc" ${f.o === 'precio-desc' ? 'selected' : ''}>Precio: mayor a menor</option>
+            <option value="nombre" ${f.o === 'nombre' ? 'selected' : ''}>Nombre</option></select></label>
+        </div>
+        ${lista.length ? `<div class="grid">${mostrar.map(cardHtml).join('')}</div>
+          ${mostrar.length < lista.length ? `<p style="text-align:center;margin-top:28px"><button class="btn ghost" data-act="mas">Ver más (${lista.length - mostrar.length})</button></p>` : ''}`
+    : `<div class="empty"><h2>No encontramos prendas</h2><p>Prueba quitando algún filtro o escribe a nuestro WhatsApp y te ayudamos.</p><a class="btn" href="#/tienda">Ver todo</a></div>`}
+      </div>
+    </div></div>`;
 }
 
 // --- Producto ---
