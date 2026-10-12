@@ -8,7 +8,7 @@ Sistema web para las 3 sucursales (Tarija, Cochabamba y Santa Cruz):
 - **Dashboard** del dueño: ventas, sucursales, modelos, tallas, colores, pagos, descuentos y alertas de stock.
 - **Catálogo para clientes** con enlace público y botón de WhatsApp, siempre al día con el stock.
 - **Catálogo PDF** e imágenes listas para enviar.
-- **Tienda online** para tus clientes (`/tienda/`): catálogo con filtros, página de cada prenda, carrito, compra sin cuenta, pago con QR o transferencia, delivery o retiro, códigos de descuento y seguimiento del pedido. Usa **el mismo inventario** del sistema: lo que se vende en tienda o en línea se descuenta de un solo stock.
+- **Tienda online** para tus clientes (la página principal): catálogo con filtros, página de cada prenda, carrito, compra sin cuenta, pago con QR o transferencia, delivery o retiro, códigos de descuento y seguimiento del pedido. Usa **el mismo inventario** del sistema: lo que se vende en tienda o en línea se descuenta de un solo stock.
 - **Cuentas separadas**: el dueño ve todo; cada vendedor solo vende y ve lo de su sucursal.
 
 Ya trae cargados tus datos: 217 modelos, el inventario del 8 de octubre de 2026 (2.045 prendas), el historial de ventas de junio a septiembre y las 375 fotos.
@@ -68,7 +68,8 @@ Si tu repositorio es **privado** y no pagas GitHub Pro, GitHub Pages no funciona
 3. En **Actions → Publicar sitio** verás el avance. Al terminar, tu página queda en:
 
 ```
-https://fermedinaseg-cmyk.github.io/dunno-clothing-sistema/            ← el sistema (con inicio de sesión)
+https://fermedinaseg-cmyk.github.io/dunno-clothing-sistema/            ← la tienda online (clientes)
+https://fermedinaseg-cmyk.github.io/dunno-clothing-sistema/sistema/    ← el sistema (con inicio de sesión)
 https://fermedinaseg-cmyk.github.io/dunno-clothing-sistema/catalogo.html?s=tarija   ← catálogo para clientes
 ```
 
@@ -82,7 +83,7 @@ En Supabase abre **Authentication → URL Configuration** y en **Site URL** pega
 Después de publicar, tu tienda queda en:
 
 ```
-https://fermedinaseg-cmyk.github.io/dunno-clothing-sistema/tienda/
+https://fermedinaseg-cmyk.github.io/dunno-clothing-sistema/
 ```
 
 **Primeros ajustes (5 minutos).** Entra al sistema con tu cuenta de dueño, abre la pestaña **Tienda online** y completa:
@@ -95,7 +96,7 @@ https://fermedinaseg-cmyk.github.io/dunno-clothing-sistema/tienda/
 1. Elige su ciudad (cada sucursal vende su propio stock), mira las prendas, escoge color y talla y las agrega al carrito.
 2. Pone su nombre y celular, elige retiro, delivery o envío a otra ciudad, y cómo paga. No necesita crear cuenta.
 3. Recibe un **código de pedido** (por ejemplo `DN-7K3Q2A`). Las prendas quedan **reservadas 12 horas** (lo cambias en Ajustes) mientras paga.
-4. Paga con QR o transferencia y **sube la foto del comprobante** (o te lo manda por WhatsApp). Puede seguir su pedido en `/tienda/#/seguimiento` con su código y su celular.
+4. Paga con QR o transferencia y **sube la foto del comprobante** (o te lo manda por WhatsApp). Puede seguir su pedido en `/#/seguimiento` con su código y su celular.
 
 **Cómo lo atiendes tú**
 1. En **Pedidos** ves los pedidos nuevos (también te sale un aviso y una alerta en el dashboard).
@@ -133,7 +134,7 @@ Desde **Equipo** también puedes desactivar a alguien que ya no trabaja contigo.
 Estas reglas las aplica la base de datos, no solo la pantalla: aunque un vendedor intente saltarse el sistema, no puede leer ventas ajenas ni escribir en el inventario. Al registrar una venta, la base de datos comprueba el stock, usa el precio oficial y no deja vender más de lo que hay, incluso si dos vendedores venden la última prenda al mismo tiempo.
 
 ## Dominio propio (opcional)
-Con un dominio como `dunnoclothing.com` (unos 10 a 15 USD al año) puedes tener `sistema.dunnoclothing.com`. En GitHub: **Settings → Pages → Custom domain**, y en tu registrador de dominios creas un registro `CNAME` que apunte a `fermedinaseg-cmyk.github.io`.
+Con un dominio como `dunnoclothing.com` (unos 10 a 15 USD al año) puedes tener `dunnoclothing.com/sistema`. En GitHub: **Settings → Pages → Custom domain**, y en tu registrador de dominios creas un registro `CNAME` que apunte a `fermedinaseg-cmyk.github.io`.
 
 ## Cuidados importantes
 - **Proyecto gratuito de Supabase:** se pausa tras una semana sin uso. Este repositorio incluye un aviso automático (`mantener-activo.yml`) que lo consulta cada 3 días para evitarlo.
@@ -144,9 +145,10 @@ Con un dominio como `dunnoclothing.com` (unos 10 a 15 USD al año) puedes tener 
 
 ```
 web/                 La página (HTML, CSS y JavaScript sin compilar)
-  index.html         Sistema interno
+  index.html         Tienda online (página principal)
+  sistema/           Sistema interno (inicio de sesión)
   catalogo.html      Catálogo público para clientes (solo ver)
-  tienda/            Tienda online completa (catálogo, carrito, compra, pedido)
+  js/tienda.js       Tienda: catálogo, carrito, compra, pedido
   config.js          Dirección y clave de Supabase, WhatsApp
   js/app.js          Pantallas y lógica
   js/store.js        Conexión con Supabase (datos, sesión, fotos)
