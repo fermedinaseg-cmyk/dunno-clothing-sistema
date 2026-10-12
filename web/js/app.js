@@ -39,7 +39,7 @@ const sample=null,sampleImg=false;
 const S={orders:[],settings:{},promos:[],costs:new Map(),products:new Map(),drops:[],entries:[],sales:[],histSales:[],perfiles:[],stockRows:[],loaded:{}};
 let stock=new Map(),ptot=new Map(),AS=[];
 const ui={tab:null,branch:null,q:'',cat:'',marca:'',showEmpty:false,range:'30',dbr:'all',expanded:{},cart:[],pay:'ef',mixed:false,disc:0,mix:{ef:0,qr:0,tj:0,gc:0},confirm:null,vrange:'7',vbr:'all',salesLimit:60,pq:'',sel:{},ph:{items:[]},phm:{items:[]},nf:null,busy:false};
-const newNF=(keep)=>({modelo:'',marca:keep&&keep.marca||'',categoria:keep&&keep.categoria||'',corte:'',precio:'',costo:'',suc:keep&&keep.suc||'tarija',drop:keep&&keep.drop||'',lines:[{t:'',c:'',q:1}]});
+const newNF=(keep)=>({modelo:'',marca:keep&&keep.marca||'',categoria:keep&&keep.categoria||'',corte:'',precio:'',costo:'',suc:keep&&keep.suc||'tarija',drop:keep&&keep.drop||'',ex:'',lines:[{t:'',c:'',q:1}]});
 ui.nf=newNF();
 function mine(){return admin?null:(me.sucursal||null)}
 const BKEY=(b,p,t,c)=>b+'~'+p+'~'+t+'~'+c;
@@ -318,7 +318,7 @@ VIEWS.inv=()=>{
     const where=e.tipo==='transferencia'?`${esc(BRM[e.origen]?BRM[e.origen].n:e.origen)} → ${esc(dst)}`:esc(dst);
     const conf=ui.confirm==='e'+e.id;
     return `<tr><td class="l">${timeStr(e.ts)}</td><td class="l">${ty}${d?` <span class="pill">${esc(d.nombre)}</span>`:''}</td><td class="l">${where}</td><td>${u>0?'+':''}${u}</td><td class="l">${esc(e.nota||'')}</td><td class="l">${esc(nameOf(e.by))}</td><td><button class="btn sm ${conf?'danger':'sec'}" data-act="del-entry" data-id="${esc(e.id)}">${conf?'¿Seguro?':'Borrar'}</button></td></tr>`}).join('');
-  return `<div class="toolbar"><div class="row"><div class="fgroup"><span class="flabel">Buscar</span><input type="text" class="search" id="q" data-keep placeholder="Modelo o marca…" value="${esc(ui.q)}"></div><label class="row sm muted" style="gap:6px;margin-top:18px"><input type="checkbox" data-act-change="empty" ${ui.showEmpty?'checked':''}> Mostrar productos sin movimientos</label></div><div class="row"><button class="btn" data-act="mov" data-v="ingreso">Ingresar stock</button><button class="btn sec" data-act="mov" data-v="transferencia">Transferir</button><button class="btn sec" data-act="mov" data-v="ajuste">Ajustar</button></div></div>
+  return `<div class="toolbar"><div class="row"><div class="fgroup"><span class="flabel">Buscar</span><input type="text" class="search" id="q" data-keep placeholder="Modelo, marca o color…" value="${esc(ui.q)}"></div><label class="row sm muted" style="gap:6px;margin-top:18px"><input type="checkbox" data-act-change="empty" ${ui.showEmpty?'checked':''}> Mostrar productos sin movimientos</label></div><div class="row"><button class="btn" data-act="mov" data-v="ingreso">Ingresar stock</button><button class="btn sec" data-act="mov" data-v="transferencia">Transferir</button><button class="btn sec" data-act="mov" data-v="ajuste">Ajustar</button></div></div>
   <section class="kpis">${BR.map((b,i)=>`<div class="kpi"><div class="k"><i class="dot" style="background:${b.c}"></i>${b.n}</div><div class="v num">${fmt(tot[i])}<small>uds</small></div></div>`).join('')}<div class="kpi"><div class="k">Total</div><div class="v num">${fmt(sum(tot,x=>x))}<small>uds</small></div></div></section>
   <div class="card"><div class="card-head"><h2>Stock por modelo</h2><p>Toca una fila para ver talla y color</p></div><div class="tbl-wrap" id="results">${invTable()}</div></div>
   <div class="card"><div class="card-head"><h2>Últimos movimientos</h2><p>Ingresos, transferencias y ajustes</p></div>${hist?`<div class="tbl-wrap"><table class="t"><tr><th class="l">Fecha</th><th class="l">Tipo</th><th class="l">Sucursal</th><th>Uds</th><th class="l">Nota</th><th class="l">Por</th><th></th></tr>${hist}</table></div>`:empty('Sin movimientos')}</div>`;
@@ -361,15 +361,17 @@ VIEWS.ventas=()=>{
 VIEWS.prod=()=>{
   const q=ui.pq.trim().toLowerCase();
   if(seedCard())return seedCard();
-  const list=[...S.products.values()].filter(p=>!q||(p.modelo+' '+p.marca+' '+p.categoria).toLowerCase().includes(q)).sort((a,b)=>a.modelo.localeCompare(b.modelo));
+  const list=[...S.products.values()].filter(p=>prodMatch(p,q)).sort((a,b)=>a.modelo.localeCompare(b.modelo));
   return `${linkBanner()}<div class="toolbar"><div class="row"><div class="fgroup"><span class="flabel">Buscar</span><input type="text" class="search" id="pq" data-keep placeholder="Modelo o marca…" value="${esc(ui.pq)}"></div></div><div class="row"><button class="btn" data-act="edit-prod" data-p="">Nuevo producto</button><button class="btn sec" data-act="import-prod">Importar desde Excel</button></div></div>
-  <div class="card"><div class="card-head"><h2>Productos</h2><p>${S.products.size} modelos. La talla y el color se definen al ingresar stock.</p></div><div class="tbl-wrap" id="results">${prodTable(list)}</div></div>`;
+  <div class="card"><div class="card-head"><h2>Productos</h2><p>${S.products.size} modelos. Los colores salen del stock que tienes en las 3 sucursales.</p></div><div class="tbl-wrap" id="results">${prodTable(list)}</div></div>`;
 };
+const colorPills=pid=>{const c=[...colorsOf(pid)].filter(([,q])=>q>0);if(!c.length)return '<span class="muted sm">Sin stock</span>';return c.slice(0,6).map(([n,q])=>`<span class="pill" title="${fmt(q)} en total">${esc(n)}</span>`).join(' ')+(c.length>6?` <span class="muted sm">+${c.length-6}</span>`:'')};
+const prodMatch=(p,ql)=>!ql||(p.modelo+' '+p.marca+' '+p.categoria+' '+[...colorsOf(p.id).keys()].join(' ')).toLowerCase().includes(ql);
 function prodTable(list){
   if(!list.length)return empty('No hay productos','Crea un producto o impórtalos desde Excel.');
-  return `<table class="t"><tr><th class="l">Modelo</th><th class="l">Marca</th><th class="l">Categoría</th><th class="l">Corte</th><th>Precio Bs</th><th>Costo Bs</th><th class="l">Estado</th><th></th></tr>${list.slice(0,200).map(p=>`<tr><td class="l"><span class="thumb">${photoOf(p)?`<img src="${esc(photoOf(p))}" loading="lazy" alt="">`:esc(p.modelo.charAt(0))}</span><b>${esc(cap(p.modelo))}</b></td><td class="l">${esc(cap(p.marca))}</td><td class="l">${esc(p.categoria)}</td><td class="l">${esc(p.corte||'')}</td><td>${fmt(p.precio)}</td><td>${S.costs.get(p.id)?fmt(S.costs.get(p.id)):'–'}</td><td class="l">${p.activo===false?'<span class="pill">Inactivo</span>':'<span class="pill" style="color:var(--good)">Activo</span>'}</td><td><button class="btn sec sm" data-act="edit-prod" data-p="${esc(p.id)}">Editar</button></td></tr>`).join('')}</table>${list.length>200?`<p class="note">Mostrando 200 de ${list.length}. Usa el buscador.</p>`:''}`
+  return `<table class="t"><tr><th class="l">Modelo</th><th class="l">Marca</th><th class="l">Categoría</th><th class="l">Corte</th><th class="l">Colores</th><th>Precio Bs</th><th>Costo Bs</th><th class="l">Estado</th><th></th></tr>${list.slice(0,200).map(p=>`<tr><td class="l"><span class="thumb">${photoOf(p)?`<img src="${esc(photoOf(p))}" loading="lazy" alt="">`:esc(p.modelo.charAt(0))}</span><b>${esc(cap(p.modelo))}</b></td><td class="l">${esc(cap(p.marca))}</td><td class="l">${esc(p.categoria)}</td><td class="l">${esc(p.corte||'')}</td><td class="l">${colorPills(p.id)}</td><td>${fmt(p.precio)}</td><td>${S.costs.get(p.id)?fmt(S.costs.get(p.id)):'–'}</td><td class="l">${p.activo===false?'<span class="pill">Inactivo</span>':'<span class="pill" style="color:var(--good)">Activo</span>'}</td><td><button class="btn sec sm" data-act="edit-prod" data-p="${esc(p.id)}">Editar</button></td></tr>`).join('')}</table>${list.length>200?`<p class="note">Mostrando 200 de ${list.length}. Usa el buscador.</p>`:''}`
 }
-AFTER.prod=()=>{const q=$('pq');if(q)q.addEventListener('input',()=>{ui.pq=q.value;const ql=ui.pq.trim().toLowerCase();$('results').innerHTML=prodTable([...S.products.values()].filter(p=>!ql||(p.modelo+' '+p.marca+' '+p.categoria).toLowerCase().includes(ql)).sort((a,b)=>a.modelo.localeCompare(b.modelo)))})};
+AFTER.prod=()=>{const q=$('pq');if(q)q.addEventListener('input',()=>{ui.pq=q.value;const ql=ui.pq.trim().toLowerCase();$('results').innerHTML=prodTable([...S.products.values()].filter(p=>prodMatch(p,ql)).sort((a,b)=>a.modelo.localeCompare(b.modelo)))})};
 
 
 // ---- Pedidos de la tienda online ----
@@ -454,12 +456,36 @@ VIEWS.equipo=()=>{
   <p class="note">Los vendedores solo ven el catálogo de su sucursal, registran ventas y consultan sus propias ventas. No ven el dashboard, el inventario de otras sucursales ni las ventas de los demás.</p></div>`
 };
 
-// Add garment from photos
+// Add garment from photos / restock an existing one
+const colorsOf=pid=>{const m=new Map();const p=prod(pid);(p&&p.fc||[]).forEach(x=>{if(!m.has(x.c))m.set(x.c,0)});stock.forEach(r=>{if(r.p===pid)m.set(r.c,(m.get(r.c)||0)+r.q)});return m};
 VIEWS.nueva=()=>{
   if(!assets)return `<div class="card">${empty('Esta función solo está disponible para el dueño','Entra con tu cuenta de dueño para subir fotos.')}</div>`;
   const f=ui.nf;
+  const ex=f.ex?prod(f.ex):null;
   const inp=(k,label,extra)=>`<div class="fgroup"><span class="flabel">${label}</span><input type="${extra&&extra.type||'text'}" data-nf="${k}" data-keep ${extra&&extra.list?`list="${extra.list}"`:''} ${extra&&extra.min!=null?`min="${extra.min}"`:''} value="${esc(f[k])}" ${extra&&extra.ph?`placeholder="${esc(extra.ph)}"`:''}></div>`;
-  return `<div class="grid">
+  const pick=`<div class="card"><div class="card-head"><h2>¿Prenda nueva o ya creada?</h2><p>Si la prenda ya existe, búscala y solo agrega el stock que llegó, sin volver a subir fotos ni datos.</p></div>
+    <div class="row" style="align-items:flex-end"><div class="fgroup" style="flex:1;min-width:240px"><span class="flabel">Buscar una prenda ya creada</span><input type="text" id="ex-q" list="dl-prod" data-keep placeholder="Escribe el modelo o la marca y elígela de la lista" value="${ex?esc(plabel(ex)):''}" autocomplete="off"></div>${ex?`<button class="btn sec" data-act="nf-exit">Crear una prenda nueva</button>`:''}</div></div>`;
+  if(ex){
+    const cols=colorsOf(ex.id);
+    const sucs=BR.map(b=>`<div class="stat"><div class="muted sm">${b.n}</div><b>${fmt(ptotal(b.id,ex.id))}</b> <span class="muted sm">prendas</span></div>`).join('');
+    return `${pick}<div class="grid">
+    <div class="card c5"><div class="card-head"><h2>Prenda elegida</h2></div>
+      <div class="row" style="gap:12px;align-items:center"><span class="thumb" style="width:64px;height:80px">${photoOf(ex)?`<img src="${esc(photoOf(ex))}" alt="">`:esc(ex.modelo.charAt(0))}</span><div><b>${esc(cap(ex.modelo))}</b><div class="muted sm">${esc(cap(ex.marca))} · ${esc(ex.categoria)}${ex.corte?' · '+esc(ex.corte):''}</div><div class="sm">Bs ${fmt(ex.precio)}</div></div></div>
+      <div class="row" style="gap:18px;margin-top:12px">${sucs}</div>
+      <div class="flabel" style="margin:14px 0 6px">Colores de esta prenda <span class="muted sm" style="font-weight:400">(toca uno para usarlo abajo)</span></div>
+      <div class="row" style="gap:6px;flex-wrap:wrap">${[...cols].map(([c,q])=>`<button class="btn sec sm" type="button" data-act="nf-color" data-c="${esc(c)}">${esc(c)} <span class="muted">· ${fmt(q)}</span></button>`).join('')||'<span class="muted sm">Aún sin colores</span>'}</div>
+      <div class="flabel" style="margin:14px 0 6px">Fotos nuevas <span class="muted sm" style="font-weight:400">(opcional, se suman a las que ya tiene)</span></div>
+      <div id="phs-ph">${photoStrip('ph')}</div>
+    </div>
+    <div class="card c7"><div class="card-head"><h2>Agregar stock (reestock)</h2></div>
+      <div class="form-grid" style="margin:8px 0"><div class="fgroup"><span class="flabel">Sucursal</span><select data-nf="suc" data-keep>${BR.map(b=>`<option value="${b.id}" ${f.suc===b.id?'selected':''}>${b.n}</option>`).join('')}</select></div></div>
+      ${f.lines.map((l,i)=>`<div class="lrow3"><input type="text" data-nfl="t" data-i="${i}" data-keep list="dl-talla" placeholder="Talla" value="${esc(l.t)}"><input type="text" data-nfl="c" data-i="${i}" data-keep list="dl-color" placeholder="Color" value="${esc(l.c)}"><input type="number" data-nfl="q" data-i="${i}" data-keep min="1" value="${esc(l.q)}"><button class="btn sec sm" type="button" data-act="nf-rm" data-i="${i}" aria-label="Quitar">×</button></div>`).join('')}
+      <div class="row"><button class="btn sec sm" data-act="nf-add">+ Agregar talla o color</button></div>
+      <p class="err" id="nf-err"></p>
+      <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn" data-act="save-new" ${ui.busy?'disabled':''}>${ui.busy?'Guardando…':'Agregar al stock'}</button></div>
+    </div></div>`;
+  }
+  return `${pick}<div class="grid">
   <div class="card c5"><div class="card-head"><h2>1. Fotos</h2><p>La primera es la portada</p></div>
     <div id="phs-ph">${photoStrip('ph')}</div>
     ${sampleImg?`<button class="btn sec" id="ai-btn" data-act="ai" style="margin-top:12px" ${ui.ph.items.some(x=>x.blob)?'':'disabled'}>Sugerir datos con IA</button><p class="note" id="ai-note">Claude mira las fotos y propone categoría, corte, color y nombre. Tú revisas antes de guardar.</p>`:`<p class="note">Sube fotos de frente, de espalda y detalles. Se comprimen solas para que carguen rápido.</p>`}
@@ -476,7 +502,21 @@ VIEWS.nueva=()=>{
     <div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn" data-act="save-new" ${ui.busy?'disabled':''}>${ui.busy?'Guardando…':'Guardar prenda'}</button></div>
   </div></div>`
 };
+async function saveRestock(){
+  const err=$('nf-err');const f=ui.nf;err.textContent='';const p=prod(f.ex);
+  if(!p){err.textContent='Elige la prenda.';return}
+  const lines=[];for(const l of f.lines){const t=normT(l.t),c=normC(l.c),q=parseInt(l.q,10);if(!t&&!c)continue;if(!t||!c||!(q>0)){err.textContent='Cada fila necesita talla, color y cantidad.';return}lines.push({p:p.id,t,c,q})}
+  if(!lines.length){err.textContent='Agrega al menos una talla con color y cantidad.';return}
+  ui.busy=true;render();
+  try{
+    await db.collection('entries').add({tipo:'ingreso',ts:Date.now(),sucursal:f.suc,lines,nota:'Reestock',by:myId||null});
+    if(ui.ph.items.length){const nuevas=await uploadItems('ph');if(nuevas.length)await db.doc('products/'+p.id).update({fotos:[...(p.fotos||[]),...nuevas]})}
+    toast(cap(p.modelo)+': +'+sum(lines,l=>l.q)+' unidades en '+(BR.find(b=>b.id===f.suc)||{}).n);
+    ui.nf={...newNF(f),suc:f.suc};ui.ph={items:[]};ui.busy=false;render();
+  }catch(e){ui.busy=false;render();const er=$('nf-err');if(er)er.textContent='No se pudo guardar ('+(e.code||'error')+'). Revisa tu conexión e intenta de nuevo.'}
+}
 async function saveNew(){
+  if(ui.nf.ex)return saveRestock();
   const err=$('nf-err');const f=ui.nf;err.textContent='';
   const d={modelo:f.modelo.trim().toUpperCase(),marca:f.marca.trim().toUpperCase(),categoria:f.categoria.trim(),corte:f.corte.trim(),precio:+f.precio,activo:true};
   if(!d.modelo||!d.marca||!d.categoria){err.textContent='Modelo, marca y categoría son obligatorios.';return}
@@ -642,6 +682,7 @@ function openProd(pid){
   <div class="form-grid"><div class="fgroup"><span class="flabel">Modelo</span><input type="text" id="f-modelo" value="${esc(p?p.modelo:'')}"></div><div class="fgroup"><span class="flabel">Marca</span><input type="text" id="f-marca" list="dl-marca" value="${esc(p?p.marca:'')}"></div>
   <div class="fgroup"><span class="flabel">Categoría</span><input type="text" id="f-cat" list="dl-cat" value="${esc(p?p.categoria:'')}"></div><div class="fgroup"><span class="flabel">Corte</span><input type="text" id="f-corte" value="${esc(p?p.corte||'':'')}"></div>
   <div class="fgroup"><span class="flabel">Precio de venta (Bs)</span><input type="number" min="0" id="f-precio" value="${p?p.precio:''}"></div><div class="fgroup"><span class="flabel">Precio antes (Bs, si está en oferta)</span><input type="number" min="0" id="f-antes" value="${p&&p.precio_antes?p.precio_antes:''}"></div><div class="fgroup"><span class="flabel">Costo (Bs, opcional)</span><input type="number" min="0" id="f-costo" value="${p&&S.costs.get(p.id)?S.costs.get(p.id):''}"></div></div>
+  ${p?`<div><div class="flabel" style="margin-bottom:6px">Colores con stock</div><div class="row" style="gap:6px;flex-wrap:wrap">${[...colorsOf(p.id)].map(([c,q])=>`<span class="pill">${esc(c)} · ${fmt(q)}</span>`).join('')||'<span class="muted sm">Aún sin colores</span>'}</div></div>`:''}
   ${assets?`<div><div class="flabel" style="margin-bottom:6px">Fotos</div><div id="phs-phm">${photoStrip('phm')}</div></div>`:''}
   <div class="fgroup"><span class="flabel">Descripción para la tienda (opcional)</span><textarea id="f-desc" rows="2">${esc(p&&p.descripcion||'')}</textarea></div>
   <label class="row sm" style="gap:6px"><input type="checkbox" id="f-dest" ${p&&p.destacado?'checked':''}> Destacar en la portada de la tienda</label>
@@ -694,6 +735,17 @@ document.addEventListener('click',async e=>{
     case 'pick':openPicker(el.dataset.p);break;
     case 'addv':{const b=curBranch();const p=prod(el.dataset.p);const t=el.dataset.t,c=el.dataset.c;const ex=ui.cart.find(i=>i.p===p.id&&i.t===t&&i.c===c);const have=ex?ex.q:0;if(avail(b,p.id,t,c)<=have)break;if(ex)ex.q++;else ui.cart.push({p:p.id,t,c,q:1,pr:p.precio});openPicker(p.id);rerenderCart();break}
     case 'qty':{const i=ui.cart[+el.dataset.i];if(!i)break;const d=+el.dataset.d;if(d>0&&avail(curBranch(),i.p,i.t,i.c)<=i.q){toast('No hay más stock de esa variante');break}i.q+=d;if(i.q<=0)ui.cart.splice(+el.dataset.i,1);rerenderCart();break}
+    case 'nf-add':{const l=ui.nf.lines;const last=l[l.length-1]||{};l.push({t:'',c:last.c||'',q:1});render();break}
+    case 'nf-rm':{ui.nf.lines.splice(+el.dataset.i,1);if(!ui.nf.lines.length)ui.nf.lines.push({t:'',c:'',q:1});render();break}
+    case 'nf-color':{const l=ui.nf.lines;const e=l.find(x=>!String(x.c||'').trim());if(e)e.c=el.dataset.c;else{const last=l[l.length-1]||{};l.push({t:'',c:el.dataset.c,q:1})}render();break}
+    case 'nf-exit':ui.nf=newNF(ui.nf);ui.ph={items:[]};render();break
+    case 'save-new':saveNew();break;
+    case 'ai':aiSuggest();break;
+    case 'share-img':shareImage(el.dataset.p);break;
+    case 'share-txt':shareText(el.dataset.p);break;
+    case 'pdf':makePdf();break;
+    case 'sel-all':filterProducts(curBranch()).forEach(p=>ui.sel[p.id]=true);render();break;
+    case 'sel-none':ui.sel={};render();break;
     case 'ph-del':{const it=ui[el.dataset.k]&&ui[el.dataset.k].items;const i=+el.dataset.i;if(!it||!it[i])break;const x=it.splice(i,1)[0];if(x&&x.blob&&x.url)try{URL.revokeObjectURL(x.url)}catch(er){}refreshStrip(el.dataset.k);break}
     case 'ph-cover':{const it=ui[el.dataset.k]&&ui[el.dataset.k].items;const i=+el.dataset.i;if(!it||!it[i])break;it.unshift(it.splice(i,1)[0]);refreshStrip(el.dataset.k);break}
     case 'clear-cart':ui.cart=[];ui.disc=0;rerenderCart();break;
@@ -738,6 +790,7 @@ document.addEventListener('input',e=>{
   if(t.dataset&&t.dataset.nfl){const l=ui.nf.lines[+t.dataset.i];if(l)l[t.dataset.nfl]=t.value}
 });
 document.addEventListener('change',async e=>{
+  if(e.target&&e.target.id==='ex-q'){const p=findProductByLabel(e.target.value);if(p){ui.nf.ex=p.id;ui.nf.lines=[{t:'',c:'',q:1}];ui.ph={items:[]};e.target.blur();pendingRender=false;render()}else if(e.target.value.trim())toast('No encontré esa prenda: elígela de la lista');return}
   const fi=e.target.closest&&e.target.closest('[data-phkey]');
   if(fi){const k=fi.dataset.phkey;const files=[...fi.files];fi.value='';let n=0;
     for(const f of files){if(ui[k].items.length>=6)break;try{const blob=await compress(f);ui[k].items.push({blob,url:URL.createObjectURL(blob)});n++}catch(er){toast('No pude leer una de las fotos')}}
