@@ -363,9 +363,9 @@ VIEWS.prod=()=>{
   if(seedCard())return seedCard();
   const list=[...S.products.values()].filter(p=>prodMatch(p,q)).sort((a,b)=>a.modelo.localeCompare(b.modelo));
   return `${linkBanner()}<div class="toolbar"><div class="row"><div class="fgroup"><span class="flabel">Buscar</span><input type="text" class="search" id="pq" data-keep placeholder="Modelo o marca…" value="${esc(ui.pq)}"></div></div><div class="row"><button class="btn" data-act="edit-prod" data-p="">Nuevo producto</button><button class="btn sec" data-act="import-prod">Importar desde Excel</button></div></div>
-  <div class="card"><div class="card-head"><h2>Productos</h2><p>${S.products.size} modelos. Los colores salen del stock que tienes en las 3 sucursales.</p></div><div class="tbl-wrap" id="results">${prodTable(list)}</div></div>`;
+  <div class="card"><div class="card-head"><h2>Productos</h2><p>${S.products.size} modelos. Los colores en gris no tienen stock todavía.</p></div><div class="tbl-wrap" id="results">${prodTable(list)}</div></div>`;
 };
-const colorPills=pid=>{const c=[...colorsOf(pid)].filter(([,q])=>q>0);if(!c.length)return '<span class="muted sm">Sin stock</span>';return c.slice(0,6).map(([n,q])=>`<span class="pill" title="${fmt(q)} en total">${esc(n)}</span>`).join(' ')+(c.length>6?` <span class="muted sm">+${c.length-6}</span>`:'')};
+const colorPills=pid=>{const c=[...colorsOf(pid)].sort((x,y)=>(y[1]>0)-(x[1]>0));if(!c.length)return '<span class="muted sm">–</span>';return c.slice(0,6).map(([n,q])=>`<span class="pill" ${q>0?'':'style="opacity:.5"'} title="${q>0?fmt(q)+' en total':'Sin stock'}">${esc(n)}</span>`).join(' ')+(c.length>6?` <span class="muted sm">+${c.length-6}</span>`:'')};
 const prodMatch=(p,ql)=>!ql||(p.modelo+' '+p.marca+' '+p.categoria+' '+[...colorsOf(p.id).keys()].join(' ')).toLowerCase().includes(ql);
 function prodTable(list){
   if(!list.length)return empty('No hay productos','Crea un producto o impórtalos desde Excel.');
@@ -675,13 +675,20 @@ function saveMov(tipo){
   db.collection('entries').add(doc).then(()=>{toast('Movimiento guardado: '+sum(lines,l=>l.q)+' prendas');closeModal()}).catch(e=>{err.textContent='No se pudo guardar ('+(e.code||'error')+').';btn.disabled=false});
 }
 async function setCost(id,co){try{if(co>0)await db.doc('costs/'+id).set({costo:co});else await db.doc('costs/'+id).delete()}catch(e){console.error('costo',e)}}
+function colsEditor(){
+  const rows=ui.colm.items;
+  return `${rows.map((r,i)=>`<div class="lrow3" style="grid-template-columns:minmax(0,1.4fr) 64px 32px;align-items:center"><input type="text" data-colc="${i}" list="dl-color" placeholder="Color (ej. Negro)" value="${esc(r.c)}">${assets?`<label class="thumb" style="width:48px;height:60px;margin:0;cursor:pointer;border:1.5px dashed var(--ink-3)" title="${r.url?'Cambiar foto':'Foto de este color'}"><input type="file" data-colfile="${i}" accept="image/*" hidden>${r.url?`<img src="${esc(r.url)}" alt="">`:'+'}</label>`:'<span></span>'}<button class="btn sec sm" type="button" data-act="col-rm" data-i="${i}" aria-label="Quitar color">×</button></div>`).join('')||'<p class="muted sm" style="margin:0 0 6px">Aún no hay colores.</p>'}
+  <div class="row"><button class="btn sec sm" type="button" data-act="col-add">+ Agregar color</button></div>`
+}
 function openProd(pid){
   const p=pid?prod(pid):null;
   ui.phm={items:(p&&p.fotos||[]).map(id=>({id,url:imgUrl(id)}))};
+  ui.colm={items:(p&&p.fc||[]).map(x=>({c:x.c,f:x.f||null,url:x.f?imgUrl(x.f):null}))};
   openModal(`<div class="mhead"><h2>${p?'Editar producto':'Nuevo producto'}</h2><button class="btn sec sm" data-act="close">Cerrar</button></div>
   <div class="form-grid"><div class="fgroup"><span class="flabel">Modelo</span><input type="text" id="f-modelo" value="${esc(p?p.modelo:'')}"></div><div class="fgroup"><span class="flabel">Marca</span><input type="text" id="f-marca" list="dl-marca" value="${esc(p?p.marca:'')}"></div>
   <div class="fgroup"><span class="flabel">Categoría</span><input type="text" id="f-cat" list="dl-cat" value="${esc(p?p.categoria:'')}"></div><div class="fgroup"><span class="flabel">Corte</span><input type="text" id="f-corte" value="${esc(p?p.corte||'':'')}"></div>
   <div class="fgroup"><span class="flabel">Precio de venta (Bs)</span><input type="number" min="0" id="f-precio" value="${p?p.precio:''}"></div><div class="fgroup"><span class="flabel">Precio antes (Bs, si está en oferta)</span><input type="number" min="0" id="f-antes" value="${p&&p.precio_antes?p.precio_antes:''}"></div><div class="fgroup"><span class="flabel">Costo (Bs, opcional)</span><input type="number" min="0" id="f-costo" value="${p&&S.costs.get(p.id)?S.costs.get(p.id):''}"></div></div>
+  <div><div class="flabel" style="margin-bottom:6px">Colores de la prenda <span class="muted sm" style="font-weight:400">(la foto de cada color es opcional; el stock se agrega después)</span></div><div id="cols-phm">${colsEditor()}</div></div>
   ${p?`<div><div class="flabel" style="margin-bottom:6px">Colores con stock</div><div class="row" style="gap:6px;flex-wrap:wrap">${[...colorsOf(p.id)].map(([c,q])=>`<span class="pill">${esc(c)} · ${fmt(q)}</span>`).join('')||'<span class="muted sm">Aún sin colores</span>'}</div></div>`:''}
   ${assets?`<div><div class="flabel" style="margin-bottom:6px">Fotos</div><div id="phs-phm">${photoStrip('phm')}</div></div>`:''}
   <div class="fgroup"><span class="flabel">Descripción para la tienda (opcional)</span><textarea id="f-desc" rows="2">${esc(p&&p.descripcion||'')}</textarea></div>
@@ -704,7 +711,12 @@ async function saveProd(pid){
   try{
     if(assets){d.fotos=await uploadItems('phm');if(!d.fotos.length)delete d.fotos}
     const quitadas=old.filter(id=>!(d.fotos||[]).includes(id));
-    if(d.fc){d.fc=d.fc.filter(x=>!quitadas.includes(x.f));if(!d.fc.length)delete d.fc}
+    const fc=[];
+    for(const r of ui.colm.items){const c=normC(r.c);if(!c||fc.some(x=>x.c===c))continue;let f=r.f||null;
+      if(r.blob&&assets){const up=await assets.upload(r.blob,{type:'image/jpeg'});f=up.id;d.fotos=[...(d.fotos||[]),f]}
+      fc.push(f?{c,f}:{c})}
+    if(fc.length)d.fc=fc;else delete d.fc;
+    if(d.fc)d.fc=d.fc.map(x=>x.f&&quitadas.includes(x.f)?{c:x.c}:x);
     let newId=pid;if(pid)await db.doc('products/'+pid).set(d);else newId=(await db.collection('products').add(d)).id;
     await setCost(newId,co);
     if(assets)for(const id of quitadas){try{await assets.delete(id)}catch(e){}}
@@ -735,6 +747,8 @@ document.addEventListener('click',async e=>{
     case 'pick':openPicker(el.dataset.p);break;
     case 'addv':{const b=curBranch();const p=prod(el.dataset.p);const t=el.dataset.t,c=el.dataset.c;const ex=ui.cart.find(i=>i.p===p.id&&i.t===t&&i.c===c);const have=ex?ex.q:0;if(avail(b,p.id,t,c)<=have)break;if(ex)ex.q++;else ui.cart.push({p:p.id,t,c,q:1,pr:p.precio});openPicker(p.id);rerenderCart();break}
     case 'qty':{const i=ui.cart[+el.dataset.i];if(!i)break;const d=+el.dataset.d;if(d>0&&avail(curBranch(),i.p,i.t,i.c)<=i.q){toast('No hay más stock de esa variante');break}i.q+=d;if(i.q<=0)ui.cart.splice(+el.dataset.i,1);rerenderCart();break}
+    case 'col-add':ui.colm.items.push({c:'',f:null,url:null});$('cols-phm').innerHTML=colsEditor();break;
+    case 'col-rm':ui.colm.items.splice(+el.dataset.i,1);$('cols-phm').innerHTML=colsEditor();break;
     case 'nf-add':{const l=ui.nf.lines;const last=l[l.length-1]||{};l.push({t:'',c:last.c||'',q:1});render();break}
     case 'nf-rm':{ui.nf.lines.splice(+el.dataset.i,1);if(!ui.nf.lines.length)ui.nf.lines.push({t:'',c:'',q:1});render();break}
     case 'nf-color':{const l=ui.nf.lines;const e=l.find(x=>!String(x.c||'').trim());if(e)e.c=el.dataset.c;else{const last=l[l.length-1]||{};l.push({t:'',c:el.dataset.c,q:1})}render();break}
@@ -786,10 +800,12 @@ document.addEventListener('click',async e=>{
   }
 });
 document.addEventListener('input',e=>{
-  const t=e.target;if(t.dataset&&t.dataset.nf){ui.nf[t.dataset.nf]=t.value}
+  const t=e.target;if(t.dataset&&t.dataset.colc!=null&&ui.colm){const r=ui.colm.items[+t.dataset.colc];if(r)r.c=t.value}if(t.dataset&&t.dataset.nf){ui.nf[t.dataset.nf]=t.value}
   if(t.dataset&&t.dataset.nfl){const l=ui.nf.lines[+t.dataset.i];if(l)l[t.dataset.nfl]=t.value}
 });
 document.addEventListener('change',async e=>{
+  const cf=e.target.closest&&e.target.closest('[data-colfile]');
+  if(cf&&ui.colm){const r=ui.colm.items[+cf.dataset.colfile];const f=cf.files[0];if(r&&f){try{const blob=await compress(f);r.blob=blob;r.url=URL.createObjectURL(blob);r.f=null}catch(er){toast('No pude leer la foto')}$('cols-phm').innerHTML=colsEditor()}return}
   if(e.target&&e.target.id==='ex-q'){const p=findProductByLabel(e.target.value);if(p){ui.nf.ex=p.id;ui.nf.lines=[{t:'',c:'',q:1}];ui.ph={items:[]};e.target.blur();pendingRender=false;render()}else if(e.target.value.trim())toast('No encontré esa prenda: elígela de la lista');return}
   const fi=e.target.closest&&e.target.closest('[data-phkey]');
   if(fi){const k=fi.dataset.phkey;const files=[...fi.files];fi.value='';let n=0;
