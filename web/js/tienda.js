@@ -1,6 +1,6 @@
 // Tienda online Dunno Clothing: catálogo, producto, carrito, compra y seguimiento.
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/+esm';
-import { SUPABASE_URL, SUPABASE_ANON_KEY, WHATSAPP } from '../../config.js';
+import { SUPABASE_URL, SUPABASE_ANON_KEY, WHATSAPP } from '../config.js';
 
 // Acepta la dirección con o sin '/rest/v1/' al final: usamos solo el dominio
 const BASE = (() => { try { return new URL(SUPABASE_URL).origin; } catch (e) { return SUPABASE_URL; } })();

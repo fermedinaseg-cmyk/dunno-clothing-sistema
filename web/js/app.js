@@ -414,7 +414,7 @@ VIEWS.tienda=()=>{
   const pg=Object.assign({qr:true,transferencia:true,contraentrega:true,tienda:true},c.pagos||{});
   const inp=(id,label,val,extra)=>`<div class="fgroup"><span class="flabel">${label}</span><input type="${extra&&extra.type||'text'}" id="${id}" value="${esc(val)}" ${extra&&extra.ph?`placeholder="${esc(extra.ph)}"`:''}></div>`;
   const per=(pref,label,obj,ph)=>BR.map(b=>inp(pref+b.id,label+' · '+b.n,g(obj,b.id,''),{ph})).join('');
-  const urlT=(location.origin+location.pathname.replace(/[^/]*$/,'')+'tienda/').replace(/\/web\/web\//,'/web/');
+  const urlT=new URL('../',location.href).href;
   return `<div class="card"><div class="card-head"><h2>Tu tienda online</h2><p>Los clientes compran en: <a href="${esc(urlT)}" target="_blank" rel="noopener">${esc(urlT)}</a></p></div>
   <div class="form-grid">${inp('t-anuncio','Mensaje de la barra superior',g(c,'anuncio',''),{ph:'Retiro gratis · Delivery · Envíos a todo Bolivia'})}${inp('t-horarios','Horario de atención',g(c,'horarios',''),{ph:'Lunes a sábado de 10:00 a 20:00'})}${inp('t-hold','Horas que se reserva un pedido sin pagar',g(c,'hold_horas',12),{type:'number'})}</div>
   <h3 style="margin:18px 0 8px">Portada</h3><div class="form-grid">${inp('t-htit','Título grande',g(c.hero,'titulo',''),{ph:'Streetwear que se vive'})}${inp('t-hbtn','Texto del botón',g(c.hero,'boton',''),{ph:'Ver novedades'})}</div><div class="fgroup" style="margin-top:10px"><span class="flabel">Texto debajo del título</span><textarea id="t-htxt" rows="2">${esc(g(c.hero,'texto',''))}</textarea></div>
@@ -709,7 +709,7 @@ document.addEventListener('click',async e=>{
     case 'edit-prod':openProd(el.dataset.p);break;
     case 'save-prod':saveProd(el.dataset.p);break;
     case 'perfil-activo':{const p=S.perfiles.find(x=>x.id===el.dataset.id);if(p){try{await Store.updatePerfil(p.id,{activo:!p.activo});toast(p.activo?'Usuario desactivado':'Usuario activado');loadPerfiles()}catch(er){toast('No se pudo guardar')}}break}
-    case 'copy-public':{const u=new URL('catalogo.html?s='+curBranch(),location.href).href;try{await navigator.clipboard.writeText(u);toast('Enlace copiado: '+u)}catch(er){toast(u)}break}
+    case 'copy-public':{const u=new URL('../catalogo.html?s='+curBranch(),location.href).href;try{await navigator.clipboard.writeText(u);toast('Enlace copiado: '+u)}catch(er){toast(u)}break}
     case 'logout':await Store.signOut();location.reload();break;
     case 'ped-filtro':ui.pf=el.dataset.v;render();break;
     case 'ped-open':abrirPedido(el.dataset.id);break;
