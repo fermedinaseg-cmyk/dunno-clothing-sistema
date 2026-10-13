@@ -76,6 +76,7 @@ as $$
              'creado', pr.creado,
              'fotos', coalesce(pr.data -> 'fotos', '[]'::jsonb),
              'fc', coalesce(pr.data -> 'fc', '[]'::jsonb),
+             'guia', pr.data ->> 'guia',
              'variantes', v.variantes
            ) order by pr.data ->> 'categoria', pr.data ->> 'marca', pr.data ->> 'modelo'
          ), '[]'::jsonb)

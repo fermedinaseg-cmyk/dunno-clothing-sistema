@@ -281,7 +281,7 @@ function pintarPdp() {
   const disp = s.t && s.c ? stockDe(p, s.t, s.c) : 0;
   const max = Math.min(disp, 5);
   if (s.q > max && max > 0) s.q = max;
-  const msgStock = s.t && s.c ? (disp <= 2 ? `<p class="hint low">¡Solo ${disp === 1 ? 'queda 1 unidad' : 'quedan ' + disp + ' unidades'}!</p>` : '<p class="hint">Disponible para compra inmediata</p>') : '<p class="hint">Elige color y talla</p>';
+  const msgStock = s.t && s.c ? (disp <= 2 ? `<p class="hint low">¡Solo ${disp === 1 ? 'queda 1 unidad' : 'quedan ' + disp + ' unidades'} en ${esc(sucN(st.suc))}!</p>` : `<p class="hint">${disp >= 10 ? 'Más de 10 unidades' : 'Quedan ' + disp + ' unidades'} en ${esc(sucN(st.suc))}</p>`) : `<p class="hint">Elige tu talla para ver cuántas quedan en ${esc(sucN(st.suc))}</p>`;
   const wa = waLink(`Hola, me interesa ${cap(p.modelo)} (${cap(p.marca)})${s.t ? ', talla ' + s.t : ''}${s.c ? ', color ' + s.c : ''}. ¿Está disponible en ${sucN(st.suc)}?`);
   const hold = aj('hold_horas');
   box.innerHTML = `
@@ -295,7 +295,7 @@ function pintarPdp() {
       <div class="pr"><span>${money(p.precio)}</span>${enOferta(p) ? `<s>${money(p.precio_antes)}</s><span class="off">-${pctOff(p)}%</span>` : ''}</div>
       <div><div class="lbl"><span>Color${s.c ? ': ' + esc(s.c) : ''}</span></div>
         <div class="sw">${cs.map((c) => { const f = fcFoto(p, c); return `<button class="cw" aria-pressed="${s.c === c}" data-act="color" data-v="${esc(c)}">${f ? `<img src="${esc(foto(f))}" alt="">` : ''}${esc(c)}</button>`; }).join('')}</div></div>
-      <div><div class="lbl"><span>Talla${s.t ? ': ' + esc(s.t) : ''}</span><a href="#guia" data-act="guia" style="font-weight:500">Guía de tallas</a></div>
+      <div><div class="lbl"><span>Talla${s.t ? ': ' + esc(s.t) : ''}</span>${p.guia ? '<a href="#guia" data-act="guia" style="font-weight:500">Guía de tallas</a>' : ''}</div>
         <div class="sw">${tallas.map((t) => `<button aria-pressed="${s.t === t}" data-act="talla" data-v="${esc(t)}">${esc(t)}</button>`).join('')}</div>
         ${msgStock}</div>
       <div class="buy">
@@ -307,8 +307,7 @@ function pintarPdp() {
         ${p.descripcion ? `<details open><summary>Descripción</summary><div class="b">${esc(p.descripcion)}</div></details>` : ''}
         <details><summary>Retiro y envíos</summary><div class="b">Retiro gratis en ${esc(sucN(st.suc))}. Delivery en la ciudad desde ${money(((aj('envio') || {}).delivery || {})[st.suc] || 0)}. ${esc((aj('envio') || {}).nacional_texto || '')} Tu pedido queda reservado ${hold} horas mientras pagas.</div></details>
         <details><summary>Cambios</summary><div class="b">${esc(aj('cambios_texto'))}</div></details>
-        <details id="guia"><summary>Guía de tallas</summary><div class="b">Medidas aproximadas en cm. Las prendas oversize quedan holgadas: si prefieres un calce más ajustado, elige una talla menos.
-          <table class="sz" style="margin-top:8px"><tr><th>Talla</th><th>Pecho</th><th>Largo</th></tr><tr><td>S</td><td>54</td><td>68</td></tr><tr><td>M</td><td>57</td><td>70</td></tr><tr><td>L</td><td>60</td><td>72</td></tr><tr><td>XL</td><td>63</td><td>74</td></tr></table></div></details>
+        ${p.guia ? `<details id="guia"><summary>Guía de tallas</summary><div class="b"><a href="${esc(foto(p.guia))}" target="_blank" rel="noopener"><img class="guia-img" src="${esc(foto(p.guia))}" alt="Guía de tallas de ${esc(cap(p.modelo))}" loading="lazy"></a><p class="hint">Toca la imagen para verla más grande.</p></div></details>` : ''}
       </div>
     </div>`;
   const ld = $('#ld');
@@ -575,8 +574,8 @@ function estructura() {
 }
 function modalSucursal(obligatorio) {
   const m = $('#modal');
-  m.innerHTML = `<div class="modal-b"><h2 id="mt">¿Desde dónde compras?</h2><p class="muted">Cada sucursal tiene su propio stock. Elige la más cercana a ti: ahí retiras o desde ahí te enviamos.</p>
-    <div class="pick">${SUCS.map((s) => `<button data-act="elegir" data-s="${s.id}">${s.n}<small>${st.suc === s.id ? 'Elegida' : 'Elegir'}</small></button>`).join('')}</div>
+  m.innerHTML = `<div class="modal-b"><h2 id="mt">Elige tu sucursal</h2><p class="muted">Cada sucursal tiene su propio stock. Te mostramos solo las prendas y tallas que quedan en la que elijas; ahí retiras o desde ahí te enviamos.</p>
+    <div class="pick">${SUCS.map((s) => { const dir = (st.aj.direcciones || {})[s.id]; return `<button data-act="elegir" data-s="${s.id}"><span>${s.n}${dir ? `<small style="display:block;margin-top:2px">${esc(dir)}</small>` : ''}</span><small>${st.suc === s.id ? 'La última que elegiste' : 'Ver su stock'}</small></button>`; }).join('')}</div>
     ${obligatorio ? '' : '<p style="text-align:center;margin-top:14px"><button class="btn ghost sm" data-act="cerrarm">Cancelar</button></p>'}</div>`;
   m.classList.add('on');
 }
@@ -618,7 +617,7 @@ document.addEventListener('click', async (e) => {
   else if (a === 'cerrarm') $('#modal').classList.remove('on');
   else if (a === 'elegir') {
     const nuevo = el.dataset.s;
-    if (nuevo !== st.suc) { st.suc = nuevo; LS.set('dn_suc', nuevo); st.listo = false; st.pdp = null; st.promo = null; $('#modal').classList.remove('on'); await iniciarSucursal(); }
+    if (nuevo !== st.suc || !st.iniciado) { st.suc = nuevo; LS.set('dn_suc', nuevo); SS.set('dn_ok', true); st.listo = false; st.pdp = null; st.promo = null; $('#modal').classList.remove('on'); await iniciarSucursal(); }
     else $('#modal').classList.remove('on');
   }
   else if (a === 'cardcolor') {
@@ -717,6 +716,7 @@ window.addEventListener('hashchange', ruta);
 
 // ---------- arranque ----------
 async function iniciarSucursal() {
+  st.iniciado = true;
   cargarCarrito();
   estructura();
   app().innerHTML = '<div class="wrap"><div class="grid" style="padding:30px 0">' + '<div class="skel" style="aspect-ratio:4/5"></div>'.repeat(8) + '</div></div>';
@@ -730,11 +730,10 @@ async function iniciarSucursal() {
     return;
   }
   try { await cargarAjustes(); } catch (e) { st.aj = {}; }
-  if (!SUCS.some((s) => s.id === st.suc)) {
-    const q = new URLSearchParams(location.search).get('s');
-    st.suc = SUCS.some((s) => s.id === q) ? q : null;
-  }
-  if (!st.suc) {
+  const q = new URLSearchParams(location.search).get('s');
+  if (SUCS.some((s) => s.id === q)) { st.suc = q; SS.set('dn_ok', true); }
+  else if (!SUCS.some((s) => s.id === st.suc)) st.suc = null;
+  if (!st.suc || !SS.get('dn_ok', false)) {
     document.body.innerHTML = '<div id="modal" class="modal" role="dialog" aria-modal="true" aria-labelledby="mt"></div><div class="toast" id="toast" role="status"></div>';
     modalSucursal(true);
     return;
