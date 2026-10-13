@@ -363,3 +363,7 @@ table.it td:last-child{text-align:right}
    Para mostrarlos de nuevo, borra este bloque. */
 .shop-all .page-h,.shop-all .filters,.shop-all .fbtn,.shop-all .tools{display:none!important}
 .shop-all .shop{grid-template-columns:1fr;padding-top:26px}
+
+.guia-img{width:100%;max-width:520px;border-radius:8px;border:1px solid var(--line);display:block}
+.pick button span{text-align:left}
+.pick button span small{font:400 12.5px var(--f-b);opacity:.7}

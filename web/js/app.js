@@ -680,14 +680,20 @@ function colsEditor(){
   return `${rows.map((r,i)=>`<div class="lrow3" style="grid-template-columns:minmax(0,1.4fr) 64px 32px;align-items:center"><input type="text" data-colc="${i}" list="dl-color" placeholder="Color (ej. Negro)" value="${esc(r.c)}">${assets?`<label class="thumb" style="width:48px;height:60px;margin:0;cursor:pointer;border:1.5px dashed var(--ink-3)" title="${r.url?'Cambiar foto':'Foto de este color'}"><input type="file" data-colfile="${i}" accept="image/*" hidden>${r.url?`<img src="${esc(r.url)}" alt="">`:'+'}</label>`:'<span></span>'}<button class="btn sec sm" type="button" data-act="col-rm" data-i="${i}" aria-label="Quitar color">×</button></div>`).join('')||'<p class="muted sm" style="margin:0 0 6px">Aún no hay colores.</p>'}
   <div class="row"><button class="btn sec sm" type="button" data-act="col-add">+ Agregar color</button></div>`
 }
+function guiaEditor(){
+  const g=ui.guiam;
+  return `<div class="row" style="gap:12px;align-items:center">${g.url?`<span class="thumb" style="width:72px;height:90px;margin:0"><img src="${esc(g.url)}" alt=""></span>`:''}<label class="btn sec sm" style="cursor:pointer">${g.url?'Cambiar imagen':'Subir imagen'}<input type="file" data-guiafile accept="image/*" hidden></label>${g.url?'<button class="btn sec sm" type="button" data-act="guia-del">Quitar</button>':''}</div>`
+}
 function openProd(pid){
   const p=pid?prod(pid):null;
   ui.phm={items:(p&&p.fotos||[]).map(id=>({id,url:imgUrl(id)}))};
+  ui.guiam={id:(p&&p.guia)||null,url:p&&p.guia?imgUrl(p.guia):null,blob:null};
   ui.colm={items:(p&&p.fc||[]).map(x=>({c:x.c,f:x.f||null,url:x.f?imgUrl(x.f):null}))};
   openModal(`<div class="mhead"><h2>${p?'Editar producto':'Nuevo producto'}</h2><button class="btn sec sm" data-act="close">Cerrar</button></div>
   <div class="form-grid"><div class="fgroup"><span class="flabel">Modelo</span><input type="text" id="f-modelo" value="${esc(p?p.modelo:'')}"></div><div class="fgroup"><span class="flabel">Marca</span><input type="text" id="f-marca" list="dl-marca" value="${esc(p?p.marca:'')}"></div>
   <div class="fgroup"><span class="flabel">Categoría</span><input type="text" id="f-cat" list="dl-cat" value="${esc(p?p.categoria:'')}"></div><div class="fgroup"><span class="flabel">Corte</span><input type="text" id="f-corte" value="${esc(p?p.corte||'':'')}"></div>
   <div class="fgroup"><span class="flabel">Precio de venta (Bs)</span><input type="number" min="0" id="f-precio" value="${p?p.precio:''}"></div><div class="fgroup"><span class="flabel">Precio antes (Bs, si está en oferta)</span><input type="number" min="0" id="f-antes" value="${p&&p.precio_antes?p.precio_antes:''}"></div><div class="fgroup"><span class="flabel">Costo (Bs, opcional)</span><input type="number" min="0" id="f-costo" value="${p&&S.costs.get(p.id)?S.costs.get(p.id):''}"></div></div>
+  ${assets?`<div><div class="flabel" style="margin-bottom:6px">Guía de tallas <span class="muted sm" style="font-weight:400">(foto de la tabla de medidas de esta prenda; se muestra en la tienda)</span></div><div id="guia-phm">${guiaEditor()}</div></div>`:''}
   <div><div class="flabel" style="margin-bottom:6px">Colores de la prenda <span class="muted sm" style="font-weight:400">(la foto de cada color es opcional; el stock se agrega después)</span></div><div id="cols-phm">${colsEditor()}</div></div>
   ${p?`<div><div class="flabel" style="margin-bottom:6px">Colores con stock</div><div class="row" style="gap:6px;flex-wrap:wrap">${[...colorsOf(p.id)].map(([c,q])=>`<span class="pill">${esc(c)} · ${fmt(q)}</span>`).join('')||'<span class="muted sm">Aún sin colores</span>'}</div></div>`:''}
   ${assets?`<div><div class="flabel" style="margin-bottom:6px">Fotos</div><div id="phs-phm">${photoStrip('phm')}</div></div>`:''}
@@ -711,6 +717,7 @@ async function saveProd(pid){
   try{
     if(assets){d.fotos=await uploadItems('phm');if(!d.fotos.length)delete d.fotos}
     const quitadas=old.filter(id=>!(d.fotos||[]).includes(id));
+    if(assets&&ui.guiam){if(ui.guiam.blob){const up=await assets.upload(ui.guiam.blob,{type:'image/jpeg'});d.guia=up.id}else if(ui.guiam.id)d.guia=ui.guiam.id;else delete d.guia}
     const fc=[];
     for(const r of ui.colm.items){const c=normC(r.c);if(!c||fc.some(x=>x.c===c))continue;let f=r.f||null;
       if(r.blob&&assets){const up=await assets.upload(r.blob,{type:'image/jpeg'});f=up.id;d.fotos=[...(d.fotos||[]),f]}
@@ -747,6 +754,7 @@ document.addEventListener('click',async e=>{
     case 'pick':openPicker(el.dataset.p);break;
     case 'addv':{const b=curBranch();const p=prod(el.dataset.p);const t=el.dataset.t,c=el.dataset.c;const ex=ui.cart.find(i=>i.p===p.id&&i.t===t&&i.c===c);const have=ex?ex.q:0;if(avail(b,p.id,t,c)<=have)break;if(ex)ex.q++;else ui.cart.push({p:p.id,t,c,q:1,pr:p.precio});openPicker(p.id);rerenderCart();break}
     case 'qty':{const i=ui.cart[+el.dataset.i];if(!i)break;const d=+el.dataset.d;if(d>0&&avail(curBranch(),i.p,i.t,i.c)<=i.q){toast('No hay más stock de esa variante');break}i.q+=d;if(i.q<=0)ui.cart.splice(+el.dataset.i,1);rerenderCart();break}
+    case 'guia-del':ui.guiam={id:null,url:null,blob:null};$('guia-phm').innerHTML=guiaEditor();break;
     case 'col-add':ui.colm.items.push({c:'',f:null,url:null});$('cols-phm').innerHTML=colsEditor();break;
     case 'col-rm':ui.colm.items.splice(+el.dataset.i,1);$('cols-phm').innerHTML=colsEditor();break;
     case 'nf-add':{const l=ui.nf.lines;const last=l[l.length-1]||{};l.push({t:'',c:last.c||'',q:1});render();break}
@@ -804,6 +812,8 @@ document.addEventListener('input',e=>{
   if(t.dataset&&t.dataset.nfl){const l=ui.nf.lines[+t.dataset.i];if(l)l[t.dataset.nfl]=t.value}
 });
 document.addEventListener('change',async e=>{
+  const gf=e.target.closest&&e.target.closest('[data-guiafile]');
+  if(gf&&ui.guiam){const f=gf.files[0];if(f){try{const blob=await compress(f);ui.guiam={id:null,url:URL.createObjectURL(blob),blob}}catch(er){toast('No pude leer la imagen')}$('guia-phm').innerHTML=guiaEditor()}return}
   const cf=e.target.closest&&e.target.closest('[data-colfile]');
   if(cf&&ui.colm){const r=ui.colm.items[+cf.dataset.colfile];const f=cf.files[0];if(r&&f){try{const blob=await compress(f);r.blob=blob;r.url=URL.createObjectURL(blob);r.f=null}catch(er){toast('No pude leer la foto')}$('cols-phm').innerHTML=colsEditor()}return}
   if(e.target&&e.target.id==='ex-q'){const p=findProductByLabel(e.target.value);if(p){ui.nf.ex=p.id;ui.nf.lines=[{t:'',c:'',q:1}];ui.ph={items:[]};e.target.blur();pendingRender=false;render()}else if(e.target.value.trim())toast('No encontré esa prenda: elígela de la lista');return}
