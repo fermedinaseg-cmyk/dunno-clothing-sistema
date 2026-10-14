@@ -38,7 +38,7 @@ const sample=null,sampleImg=false;
 // ---- data ----
 const S={orders:[],settings:{},promos:[],costs:new Map(),products:new Map(),drops:[],entries:[],sales:[],histSales:[],perfiles:[],stockRows:[],loaded:{}};
 let stock=new Map(),ptot=new Map(),AS=[];
-const ui={tab:null,branch:null,q:'',cat:'',marca:'',showEmpty:false,range:'30',dbr:'all',expanded:{},cart:[],pay:'ef',mixed:false,disc:0,mix:{ef:0,qr:0,tj:0,gc:0},confirm:null,vrange:'7',vbr:'all',salesLimit:60,pq:'',sel:{},ph:{items:[]},phm:{items:[]},nf:null,busy:false};
+const ui={rep:null,tab:null,branch:null,q:'',cat:'',marca:'',showEmpty:false,range:'30',dbr:'all',expanded:{},cart:[],pay:'ef',mixed:false,disc:0,mix:{ef:0,qr:0,tj:0,gc:0},confirm:null,vrange:'7',vbr:'all',salesLimit:60,pq:'',sel:{},ph:{items:[]},phm:{items:[]},nf:null,busy:false};
 const newNF=(keep)=>({modelo:'',marca:keep&&keep.marca||'',categoria:keep&&keep.categoria||'',corte:'',precio:'',costo:'',suc:keep&&keep.suc||'tarija',drop:keep&&keep.drop||'',ex:'',lines:[{t:'',c:'',q:1}]});
 ui.nf=newNF();
 function mine(){return admin?null:(me.sucursal||null)}
@@ -79,7 +79,7 @@ if(admin)loadPerfiles();
 const nameOf=id=>{if(!id)return '—';if(id===myId)return me.name||'Yo';const p=S.perfiles.find(x=>x.id===id);return p?(p.nombre||p.email):'Usuario '+String(id).slice(-4)};
 // ---- shell ----
 const pendientes=()=>S.orders.filter(o=>o.estado==='pendiente'&&Date.now()<o.ts+(S.settings.hold_horas||12)*3600000&&(o.pago&&o.pago.comprobante)||o.estado==='pagado').length;
-function tabsFor(){return admin?[['dash','Dashboard'],['vender','Vender'],['pedidos','Pedidos'+(pendientes()?' ('+pendientes()+')':'')],['catalogo','Catálogo'],['nueva','Agregar prenda'],['inv','Inventario'],['ventas','Ventas'],['prod','Productos'],['tienda','Tienda online'],['equipo','Equipo']]:[['vender','Vender'],['catalogo','Catálogo'],['ventas','Mis ventas']]}
+function tabsFor(){return admin?[['dash','Dashboard'],['vender','Vender'],['pedidos','Pedidos'+(pendientes()?' ('+pendientes()+')':'')],['catalogo','Catálogo'],['nueva','Agregar prenda'],['inv','Inventario'],['ventas','Ventas'],['rep','Reportes'],['prod','Productos'],['tienda','Tienda online'],['equipo','Equipo']]:[['vender','Vender'],['catalogo','Catálogo'],['ventas','Mis ventas']]}
 if(!ui.tab)ui.tab=admin?'dash':'vender';
 function curBranch(){const m=mine();if(m)return m;if(!ui.branch)ui.branch='tarija';return ui.branch}
 function render(){
@@ -447,6 +447,63 @@ async function guardarTienda(){
   try{await db.doc('settings/tienda').set(d);toast('Ajustes guardados')}catch(e){err.textContent='No se pudo guardar ('+(e.code||'error')+').'}
 }
 
+
+// Reportes por fechas
+const MESES_L=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const isoDay=d=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const REP_MIN='2026-01-01';
+function repState(){if(!ui.rep)ui.rep={desde:REP_MIN,hasta:isoDay(new Date()),suc:'all'};return ui.rep}
+function repData(){
+  const r=repState();const t0=new Date(r.desde+'T00:00:00').getTime(),t1=new Date(r.hasta+'T23:59:59.999').getTime();
+  const sales=AS.filter(s=>!s.anulada&&s.ts>=t0&&s.ts<=t1&&(r.suc==='all'||s.sucursal===r.suc));
+  const agg=(keyf)=>{const m=new Map();sales.forEach(s=>{const k=keyf(s);const o=m.get(k)||{n:0,u:0,v:0};o.n++;o.u+=sum(s.items||[],i=>i.q);o.v+=s.total||0;m.set(k,o)});return m};
+  const items=(keyf)=>{const m=new Map();sales.forEach(s=>(s.items||[]).forEach(i=>{const k=keyf(i);if(k==null)return;const o=m.get(k)||{u:0,v:0};o.u+=i.q;o.v+=i.q*(i.pr||0);m.set(k,o)}));return m};
+  const dias=(t1-t0)/864e5;
+  const per=agg(s=>{const d=new Date(s.ts);return dias>62?d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0'):isoDay(d)});
+  const pays={ef:0,qr:0,tj:0,gc:0};sales.forEach(s=>{const p=s.pago||{};Object.keys(pays).forEach(k=>pays[k]+=+p[k]||0)});
+  return{r,sales,dias,per,porSuc:agg(s=>s.sucursal),porModelo:items(i=>i.p),porCat:items(i=>{const p=prod(i.p);return p?p.categoria:'(borrado)'}),porTalla:items(i=>i.t&&i.t!=='—'?i.t:null),porColor:items(i=>i.c&&i.c!=='—'?i.c:null),pays,
+    tot:{n:sales.length,u:sum(sales,s=>sum(s.items||[],i=>i.q)),neto:sum(sales,s=>s.total||0),bruto:sum(sales,s=>s.bruto||0),desc:sum(sales,s=>s.desc||0)}}
+}
+const perLabel=k=>k.length===7?MESES_L[+k.slice(5)-1]+' '+k.slice(0,4):k.slice(8)+'/'+k.slice(5,7)+'/'+k.slice(0,4);
+VIEWS.rep=()=>{
+  const d=repData();const r=d.r;const T=d.tot;
+  const tbl=(head,rows,empt)=>rows.length?`<div class="tbl-wrap"><table class="t"><tr>${head.map((h,i)=>`<th class="${i?'':'l'}">${h}</th>`).join('')}</tr>${rows.map(x=>`<tr>${x.map((c,i)=>`<td class="${i?'':'l'}">${c}</td>`).join('')}</tr>`).join('')}</table></div>`:`<p class="muted sm">${empt||'Sin datos en este período.'}</p>`;
+  const top=(m,lab,n)=>[...m].sort((a,b)=>b[1].u-a[1].u).slice(0,n).map(([k,o])=>[esc(lab(k)),fmt(o.u),fmt(o.v)]);
+  const perRows=[...d.per].sort((a,b)=>a[0].localeCompare(b[0])).map(([k,o])=>[perLabel(k),fmt(o.n),fmt(o.u),fmt(o.v)]);
+  const sucRows=BR.map(b=>{const o=d.porSuc.get(b.id)||{n:0,u:0,v:0};return[b.n,fmt(o.n),fmt(o.u),fmt(o.v),T.neto?Math.round(o.v/T.neto*100)+'%':'–']});
+  const pm=[['ef','Efectivo'],['qr','QR'],['tj','Tarjeta'],['gc','Giftcard']];
+  const first=AS.length?Math.min(...AS.map(s=>s.ts)):null;
+  const sinDatos=first&&new Date(r.desde+'T00:00:00').getTime()<first?`<p class="note">Aviso: tus ventas registradas empiezan el ${new Date(first).toLocaleDateString('es-BO')}. Antes de esa fecha no hay datos en el sistema.</p>`:'';
+  return `<div class="card noprint"><div class="card-head"><h2>Reporte por fechas</h2><p>Elige desde qué fecha hasta qué fecha quieres ver. Se puede empezar desde enero de 2026.</p></div>
+  <div class="toolbar" style="margin:0"><div class="row" style="align-items:flex-end;flex-wrap:wrap;gap:10px">
+    <div class="fgroup"><span class="flabel">Desde</span><input type="date" data-rep="desde" min="${REP_MIN}" max="${r.hasta}" value="${r.desde}"></div>
+    <div class="fgroup"><span class="flabel">Hasta</span><input type="date" data-rep="hasta" min="${r.desde}" max="${isoDay(new Date())}" value="${r.hasta}"></div>
+    <div class="fgroup"><span class="flabel">Sucursal</span><select data-rep="suc"><option value="all">Todas</option>${BR.map(b=>`<option value="${b.id}" ${r.suc===b.id?'selected':''}>${b.n}</option>`).join('')}</select></div>
+  </div></div>
+  <div class="row" style="gap:6px;flex-wrap:wrap;margin-top:10px"><button class="btn sec sm" data-act="rep-q" data-v="mes">Este mes</button><button class="btn sec sm" data-act="rep-q" data-v="mes-ant">Mes pasado</button><button class="btn sec sm" data-act="rep-q" data-v="30">Últimos 30 días</button><button class="btn sec sm" data-act="rep-q" data-v="all">Todo 2026</button>
+    <span class="sp" style="flex:1"></span><button class="btn sm" data-act="rep-csv">Descargar Excel (CSV)</button><button class="btn sec sm" data-act="rep-print">Imprimir / guardar PDF</button></div></div>
+  <div class="card"><div class="card-head"><h2>Del ${new Date(r.desde+'T12:00:00').toLocaleDateString('es-BO',{day:'numeric',month:'long',year:'numeric'})} al ${new Date(r.hasta+'T12:00:00').toLocaleDateString('es-BO',{day:'numeric',month:'long',year:'numeric'})}</h2><p>${r.suc==='all'?'Las 3 sucursales':(BR.find(b=>b.id===r.suc)||{}).n} · ventas anuladas no incluidas</p></div>
+    ${sinDatos}
+    <div class="row" style="gap:28px;flex-wrap:wrap;margin:6px 0 4px"><div><div class="muted sm">Venta neta</div><b style="font-size:26px">Bs ${fmt(T.neto)}</b></div><div><div class="muted sm">Ventas</div><b style="font-size:26px">${fmt(T.n)}</b></div><div><div class="muted sm">Prendas</div><b style="font-size:26px">${fmt(T.u)}</b></div><div><div class="muted sm">Ticket promedio</div><b style="font-size:26px">Bs ${fmt(T.n?T.neto/T.n:0)}</b></div><div><div class="muted sm">Descuentos</div><b style="font-size:26px">Bs ${fmt(T.desc)}</b></div></div></div>
+  <div class="grid">
+    <div class="card c6"><div class="card-head"><h2>${d.dias>62?'Por mes':'Por día'}</h2></div>${tbl([d.dias>62?'Mes':'Día','Ventas','Prendas','Bs'],perRows)}</div>
+    <div class="card c6"><div class="card-head"><h2>Por sucursal</h2></div>${tbl(['Sucursal','Ventas','Prendas','Bs','%'],sucRows)}
+      <div class="card-head" style="margin-top:16px"><h2>Cómo se pagó</h2></div>${tbl(['Medio','Bs','%'],pm.map(([k,n])=>{const tt=sum(Object.values(d.pays),x=>x);return[n,fmt(d.pays[k]),tt?Math.round(d.pays[k]/tt*100)+'%':'–']}))}</div>
+    <div class="card c6"><div class="card-head"><h2>Modelos más vendidos</h2><p>Top 15</p></div>${tbl(['Modelo','Prendas','Bs'],top(d.porModelo,pname,15))}</div>
+    <div class="card c6"><div class="card-head"><h2>Por categoría</h2></div>${tbl(['Categoría','Prendas','Bs'],top(d.porCat,x=>x,12))}
+      <div class="card-head" style="margin-top:16px"><h2>Por talla y color</h2><p>Solo ventas con talla y color registrados (el historial viejo no los trae)</p></div>
+      ${tbl(['Talla','Prendas','Bs'],top(d.porTalla,x=>x,12),'Aún no hay ventas con talla en este período.')}${tbl(['Color','Prendas','Bs'],top(d.porColor,x=>x,12),'')}</div>
+  </div>`
+};
+function repCsv(){
+  const d=repData();const r=d.r;const q=v=>'"'+String(v==null?'':v).replace(/"/g,'""')+'"';const L=[];
+  L.push(['Reporte Dunno Clothing','Desde '+r.desde,'Hasta '+r.hasta,r.suc==='all'?'Todas las sucursales':(BR.find(b=>b.id===r.suc)||{}).n].map(q).join(','));
+  L.push('');L.push(['Fecha','Hora','Sucursal','Modelo','Marca','Categoría','Talla','Color','Cantidad','Precio','Subtotal','Descuento de la venta','Total de la venta','Pago','Origen'].map(q).join(','));
+  d.sales.slice().sort((a,b)=>a.ts-b.ts).forEach(s=>{const dt=new Date(s.ts);const pg=Object.entries(s.pago||{}).filter(([,v])=>v>0).map(([k,v])=>({ef:'Efectivo',qr:'QR',tj:'Tarjeta',gc:'Giftcard'}[k]||k)+' '+Math.round(v)).join(' + ');
+    (s.items||[]).forEach((i,ix)=>{const p=prod(i.p);L.push([isoDay(dt),dt.toTimeString().slice(0,5),(BR.find(b=>b.id===s.sucursal)||{}).n||s.sucursal,p?p.modelo:i.p,p?p.marca:'',p?p.categoria:'',i.t==='—'?'':i.t,i.c==='—'?'':i.c,i.q,i.pr||0,(i.q*(i.pr||0)),ix?'':(s.desc||0),ix?'':(s.total||0),ix?'':pg,s.online?'Tienda online':s.hist?'Historial':'Sistema'].map(q).join(','))})});
+  return '﻿'+L.join('\r\n')
+}
+
 // Team
 VIEWS.equipo=()=>{
   const rows=S.perfiles.filter(p=>p.id!==myId).map(p=>`<tr><td class="l"><b>${esc(p.nombre||p.email)}</b><div class="muted sm">${esc(p.email||'')}</div></td><td class="l"><select data-act-change="perfil-suc" data-id="${esc(p.id)}"><option value="">Sin asignar</option>${BR.map(b=>`<option value="${b.id}" ${p.sucursal===b.id?'selected':''}>${b.n}</option>`).join('')}</select></td><td class="l"><select data-act-change="perfil-rol" data-id="${esc(p.id)}"><option value="vendedor" ${p.rol==='vendedor'?'selected':''}>Vendedor</option><option value="admin" ${p.rol==='admin'?'selected':''}>Dueño</option></select></td><td class="l">${!p.activo?'<span class="pill bad">Desactivado</span>':p.rol==='admin'?'<span class="pill">Dueño</span>':p.sucursal?'<span class="pill" style="color:var(--good)">Puede vender</span>':'<span class="pill warn">Sin sucursal</span>'}</td><td><button class="btn sm ${p.activo?'sec':''}" data-act="perfil-activo" data-id="${esc(p.id)}">${p.activo?'Desactivar':'Activar'}</button></td></tr>`).join('');
@@ -755,6 +812,14 @@ document.addEventListener('click',async e=>{
     case 'addv':{const b=curBranch();const p=prod(el.dataset.p);const t=el.dataset.t,c=el.dataset.c;const ex=ui.cart.find(i=>i.p===p.id&&i.t===t&&i.c===c);const have=ex?ex.q:0;if(avail(b,p.id,t,c)<=have)break;if(ex)ex.q++;else ui.cart.push({p:p.id,t,c,q:1,pr:p.precio});openPicker(p.id);rerenderCart();break}
     case 'qty':{const i=ui.cart[+el.dataset.i];if(!i)break;const d=+el.dataset.d;if(d>0&&avail(curBranch(),i.p,i.t,i.c)<=i.q){toast('No hay más stock de esa variante');break}i.q+=d;if(i.q<=0)ui.cart.splice(+el.dataset.i,1);rerenderCart();break}
     case 'guia-del':ui.guiam={id:null,url:null,blob:null};$('guia-phm').innerHTML=guiaEditor();break;
+    case 'rep-q':{const r=repState();const hoy=new Date();const v=el.dataset.v;
+      if(v==='mes'){r.desde=isoDay(new Date(hoy.getFullYear(),hoy.getMonth(),1));r.hasta=isoDay(hoy)}
+      else if(v==='mes-ant'){r.desde=isoDay(new Date(hoy.getFullYear(),hoy.getMonth()-1,1));r.hasta=isoDay(new Date(hoy.getFullYear(),hoy.getMonth(),0))}
+      else if(v==='30'){r.desde=isoDay(new Date(Date.now()-29*864e5));r.hasta=isoDay(hoy)}
+      else{r.desde=REP_MIN;r.hasta=isoDay(hoy)}
+      if(r.desde<REP_MIN)r.desde=REP_MIN;render();break}
+    case 'rep-csv':{const r=repState();try{await downloads.save({filename:'reporte-dunno-'+r.desde+'-a-'+r.hasta+'.csv',data:new Blob([repCsv()],{type:'text/csv;charset=utf-8'})});toast('Reporte descargado')}catch(er){toast('No se pudo descargar')}break}
+    case 'rep-print':window.print();break;
     case 'col-add':ui.colm.items.push({c:'',f:null,url:null});$('cols-phm').innerHTML=colsEditor();break;
     case 'col-rm':ui.colm.items.splice(+el.dataset.i,1);$('cols-phm').innerHTML=colsEditor();break;
     case 'nf-add':{const l=ui.nf.lines;const last=l[l.length-1]||{};l.push({t:'',c:last.c||'',q:1});render();break}
@@ -812,6 +877,9 @@ document.addEventListener('input',e=>{
   if(t.dataset&&t.dataset.nfl){const l=ui.nf.lines[+t.dataset.i];if(l)l[t.dataset.nfl]=t.value}
 });
 document.addEventListener('change',async e=>{
+  if(e.target&&e.target.dataset&&e.target.dataset.rep){const r=repState();const k=e.target.dataset.rep;let v=e.target.value;
+    if(k==='desde'){if(!v||v<REP_MIN)v=REP_MIN;if(v>r.hasta)r.hasta=v}if(k==='hasta'){if(!v)v=isoDay(new Date());if(v<r.desde)r.desde=v}
+    r[k]=v;render();return}
   const gf=e.target.closest&&e.target.closest('[data-guiafile]');
   if(gf&&ui.guiam){const f=gf.files[0];if(f){try{const blob=await compress(f);ui.guiam={id:null,url:URL.createObjectURL(blob),blob}}catch(er){toast('No pude leer la imagen')}$('guia-phm').innerHTML=guiaEditor()}return}
   const cf=e.target.closest&&e.target.closest('[data-colfile]');

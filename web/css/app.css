@@ -183,3 +183,5 @@ table.t tr.sub td{background:var(--surface-2);font-size:13px}
 .lg-form{display:flex;flex-direction:column;gap:12px;text-align:left}
 .lg-form .btn{width:100%}
 .splash h1{font-size:24px}
+
+@media print{.topbar,.tabs,.noprint,.toast{display:none!important}body{background:#fff}.card{box-shadow:none;break-inside:avoid}}
