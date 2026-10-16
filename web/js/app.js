@@ -777,7 +777,7 @@ async function saveProd(pid){
     if(assets&&ui.guiam){if(ui.guiam.blob){const up=await assets.upload(ui.guiam.blob,{type:'image/jpeg'});d.guia=up.id}else if(ui.guiam.id)d.guia=ui.guiam.id;else delete d.guia}
     const fc=[];
     for(const r of ui.colm.items){const c=normC(r.c);if(!c||fc.some(x=>x.c===c))continue;let f=r.f||null;
-      if(r.blob&&assets){const up=await assets.upload(r.blob,{type:'image/jpeg'});f=up.id;d.fotos=[...(d.fotos||[]),f]}
+      if(r.blob&&assets){const up=await assets.upload(r.blob,{type:'image/jpeg'});f=up.id;{const fs=d.fotos||[];d.fotos=r.old&&fs.includes(r.old)?fs.map(x=>x===r.old?f:x):[...fs,f]}}
       fc.push(f?{c,f}:{c})}
     if(fc.length)d.fc=fc;else delete d.fc;
     if(d.fc)d.fc=d.fc.map(x=>x.f&&quitadas.includes(x.f)?{c:x.c}:x);
@@ -883,7 +883,7 @@ document.addEventListener('change',async e=>{
   const gf=e.target.closest&&e.target.closest('[data-guiafile]');
   if(gf&&ui.guiam){const f=gf.files[0];if(f){try{const blob=await compress(f);ui.guiam={id:null,url:URL.createObjectURL(blob),blob}}catch(er){toast('No pude leer la imagen')}$('guia-phm').innerHTML=guiaEditor()}return}
   const cf=e.target.closest&&e.target.closest('[data-colfile]');
-  if(cf&&ui.colm){const r=ui.colm.items[+cf.dataset.colfile];const f=cf.files[0];if(r&&f){try{const blob=await compress(f);r.blob=blob;r.url=URL.createObjectURL(blob);r.f=null}catch(er){toast('No pude leer la foto')}$('cols-phm').innerHTML=colsEditor()}return}
+  if(cf&&ui.colm){const r=ui.colm.items[+cf.dataset.colfile];const f=cf.files[0];if(r&&f){try{const blob=await compress(f);if(r.f&&!r.old)r.old=r.f;r.blob=blob;r.url=URL.createObjectURL(blob);r.f=null}catch(er){toast('No pude leer la foto')}$('cols-phm').innerHTML=colsEditor()}return}
   if(e.target&&e.target.id==='ex-q'){const p=findProductByLabel(e.target.value);if(p){ui.nf.ex=p.id;ui.nf.lines=[{t:'',c:'',q:1}];ui.ph={items:[]};e.target.blur();pendingRender=false;render()}else if(e.target.value.trim())toast('No encontré esa prenda: elígela de la lista');return}
   const fi=e.target.closest&&e.target.closest('[data-phkey]');
   if(fi){const k=fi.dataset.phkey;const files=[...fi.files];fi.value='';let n=0;
