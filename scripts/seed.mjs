@@ -38,6 +38,8 @@ async function leerColeccion(coleccion) {
 // los colores y fotos que falten.
 function fusionarProducto(actual, nuevo) {
   const d = { ...actual, precio: nuevo.precio, activo: true };
+  if (/^hoddie$/i.test(String(d.categoria || '').trim())) d.categoria = 'Hoodie';
+  d.modelo = String(d.modelo || '').replace(/hoddie/gi, (m) => (m === m.toUpperCase() ? 'HOODIE' : 'Hoodie'));
   if (!d.corte && nuevo.corte) d.corte = nuevo.corte;
   d.fotos = [...(actual.fotos || [])];
   (nuevo.fotos || []).forEach((f) => { if (!d.fotos.includes(f)) d.fotos.push(f); });

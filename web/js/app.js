@@ -4,7 +4,7 @@ import {Store} from './store.js?v=__V__';
 (async function(){
 const BR=[{id:'tarija',n:'Tarija',c:'var(--s1)'},{id:'cochabamba',n:'Cochabamba',c:'var(--s2)'},{id:'santacruz',n:'Santa Cruz',c:'var(--s3)'}];
 const BRM=Object.fromEntries(BR.map(b=>[b.id,b]));
-const CATS=['Polera','Hoddie','Buzo','Pantalón','Shorts','Chaqueta','Otro'];
+const CATS=['Polera','Hoodie','Buzo','Pantalón','Shorts','Chaqueta','Otro'];
 const $=id=>document.getElementById(id);
 const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=n=>Math.round(n||0).toLocaleString('es-BO');
@@ -58,7 +58,7 @@ const plabel=p=>p.modelo+' · '+p.marca+' · '+p.categoria;
 let rt=null;let pendingRender=false;
 function schedule(){clearTimeout(rt);rt=setTimeout(()=>{recompute();render()},40)}
 function sub(path,fn,key){return db.collection(path).onSnapshot(s=>{fn(s);S.loaded[key]=true;schedule()},e=>{console.error(path,e)})}
-sub('products',s=>{S.products=new Map(s.docs.map(d=>[d.id,{id:d.id,...d.data()}]))},'p');
+sub('products',s=>{S.products=new Map(s.docs.map(d=>{const x={id:d.id,...d.data()};if(/^hoddie$/i.test(String(x.categoria||'').trim()))x.categoria='Hoodie';x.modelo=String(x.modelo||'').replace(/hoddie/gi,m=>m===m.toUpperCase()?'HOODIE':'Hoodie');return[d.id,x]}))},'p');
 sub('drops',s=>{S.drops=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||''))},'d');
 if(admin){
   sub('orders',s=>{const antes=new Set(S.orders.map(o=>o.id));S.orders=s.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.ts-a.ts);if(S.loaded.o)S.orders.filter(o=>!antes.has(o.id)).forEach(o=>toast('Nuevo pedido '+o.codigo+' · Bs '+fmt(o.total)))},'o');
@@ -575,7 +575,7 @@ async function saveRestock(){
 async function saveNew(){
   if(ui.nf.ex)return saveRestock();
   const err=$('nf-err');const f=ui.nf;err.textContent='';
-  const d={modelo:f.modelo.trim().toUpperCase(),marca:f.marca.trim().toUpperCase(),categoria:f.categoria.trim(),corte:f.corte.trim(),precio:+f.precio,activo:true};
+  const d={modelo:f.modelo.trim().toUpperCase().replace(/HODDIE/g,'HOODIE'),marca:f.marca.trim().toUpperCase(),categoria:f.categoria.trim().replace(/^hoddie$/i,'Hoodie'),corte:f.corte.trim(),precio:+f.precio,activo:true};
   if(!d.modelo||!d.marca||!d.categoria){err.textContent='Modelo, marca y categoría son obligatorios.';return}
   if(!(d.precio>0)){err.textContent='Escribe el precio de venta.';return}
   const lines=[];for(const l of f.lines){const t=normT(l.t),c=normC(l.c),q=parseInt(l.q,10);if(!t&&!c)continue;if(!t||!c||!(q>0)){err.textContent='Cada fila de stock necesita talla, color y cantidad.';return}lines.push({t,c,q})}
@@ -593,8 +593,8 @@ async function aiSuggest(){
   const note=$('ai-note'),btn=$('ai-btn');if(btn)btn.disabled=true;if(note)note.textContent='Analizando las fotos…';
   try{
     const blobs=ui.ph.items.filter(x=>x.blob).slice(0,3).map(x=>x.blob);
-    const r=await sample.json('Eres el asistente de una tienda de ropa urbana (streetwear) en Bolivia. Mira las fotos de UNA sola prenda y responde SOLO un objeto JSON con estas claves: "categoria" (una de: Polera, Hoddie, Buzo, Pantalón, Shorts, Chaqueta, Otro), "corte" (silueta, por ejemplo Oversize, Boxi, Baggy, Slim; cadena vacía si no se nota), "colores" (lista de 1 a 3 colores principales en español, con la primera letra en mayúscula) y "nombre" (nombre corto de 1 a 3 palabras basado en el estampado o texto visible; cadena vacía si no hay).',{images:blobs,modelTier:'quick'});
-    const f=ui.nf;const cats=['Polera','Hoddie','Buzo','Pantalón','Shorts','Chaqueta','Otro'];
+    const r=await sample.json('Eres el asistente de una tienda de ropa urbana (streetwear) en Bolivia. Mira las fotos de UNA sola prenda y responde SOLO un objeto JSON con estas claves: "categoria" (una de: Polera, Hoodie, Buzo, Pantalón, Shorts, Chaqueta, Otro), "corte" (silueta, por ejemplo Oversize, Boxi, Baggy, Slim; cadena vacía si no se nota), "colores" (lista de 1 a 3 colores principales en español, con la primera letra en mayúscula) y "nombre" (nombre corto de 1 a 3 palabras basado en el estampado o texto visible; cadena vacía si no hay).',{images:blobs,modelTier:'quick'});
+    const f=ui.nf;const cats=['Polera','Hoodie','Buzo','Pantalón','Shorts','Chaqueta','Otro'];
     if(!f.categoria&&cats.includes(r.categoria))f.categoria=r.categoria;
     if(!f.corte&&r.corte)f.corte=String(r.corte).slice(0,30);
     if(!f.modelo&&r.nombre)f.modelo=String(r.nombre).slice(0,40);
@@ -763,7 +763,7 @@ async function saveProd(pid){
   const g=id=>$(id).value.trim();const err=$('f-err');
   const oldp=pid?prod(pid):null;
   const d=oldp?{...oldp}:{};delete d.id;
-  Object.assign(d,{modelo:g('f-modelo').toUpperCase(),marca:g('f-marca').toUpperCase(),categoria:g('f-cat'),corte:g('f-corte'),precio:+g('f-precio'),activo:true});
+  Object.assign(d,{modelo:g('f-modelo').toUpperCase().replace(/HODDIE/g,'HOODIE'),marca:g('f-marca').toUpperCase(),categoria:g('f-cat').replace(/^hoddie$/i,'Hoodie'),corte:g('f-corte'),precio:+g('f-precio'),activo:true});
   if(!d.modelo||!d.marca||!d.categoria){err.textContent='Modelo, marca y categoría son obligatorios.';return}
   if(!(d.precio>0)){err.textContent='Escribe el precio de venta.';return}
   const antes=+g('f-antes');if(antes>d.precio)d.precio_antes=antes;else delete d.precio_antes;
