@@ -42,9 +42,14 @@ function fusionarProducto(actual, nuevo) {
   d.modelo = String(d.modelo || '').replace(/hoddie/gi, (m) => (m === m.toUpperCase() ? 'HOODIE' : 'Hoodie'));
   if (!d.corte && nuevo.corte) d.corte = nuevo.corte;
   d.fotos = [...(actual.fotos || [])];
-  (nuevo.fotos || []).forEach((f) => { if (!d.fotos.includes(f)) d.fotos.push(f); });
   d.fc = [...(actual.fc || [])];
-  (nuevo.fc || []).forEach((x) => { if (!d.fc.some((y) => y.c === x.c)) d.fc.push(x); });
+  // Solo se suman los colores que faltan (con su foto). Las fotos que quitaste o cambiaste no vuelven.
+  (nuevo.fc || []).forEach((x) => {
+    if (d.fc.some((y) => y.c === x.c)) return;
+    d.fc.push(x);
+    if (x.f && !d.fotos.includes(x.f)) d.fotos.push(x.f);
+  });
+  if (!d.fotos.length && !(actual.fotos || []).length && !(actual.fc || []).length) d.fotos = [...(nuevo.fotos || [])];
   if (!d.fotos.length) delete d.fotos;
   if (!d.fc.length) delete d.fc;
   return d;
