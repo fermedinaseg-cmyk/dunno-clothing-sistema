@@ -90,6 +90,18 @@ try {
   if (!args.has('--sin-fotos')) await subirFotos();
   const actuales = new Map((await leerColeccion('products')).map((r) => [r.id, r.data]));
   const productos = leer('products.json').map((p) => (actuales.has(p.id) ? { id: p.id, data: fusionarProducto(actuales.get(p.id), p.data) } : p));
+  // Cambios de fotos: se aplican solo si esa foto sigue siendo la original (así no pisan lo que cambies en el sistema)
+  const cambios = fs.existsSync(path.join(raiz, 'cambios-fotos.json')) ? leer('cambios-fotos.json') : [];
+  let aplicados = 0;
+  for (const c of cambios) {
+    const prod = productos.find((x) => x.id === c.p);
+    const e = prod && (prod.data.fc || []).find((x) => x.c === c.c);
+    if (!e || e.f !== c.antes) continue;
+    e.f = c.f;
+    prod.data.fotos = (prod.data.fotos || []).map((f) => (f === c.antes ? c.f : f));
+    aplicados++;
+  }
+  if (cambios.length) console.log(`  cambios de fotos aplicados: ${aplicados} de ${cambios.length}`);
   await subirDocs('products', productos);
   if (!args.has('--sin-inventario')) {
     const conteos = leer('entries.json');
