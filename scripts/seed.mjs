@@ -8,6 +8,7 @@ import { createClient } from '@supabase/supabase-js';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { movimientosOtros, ajustarConteos } from './reconciliar.mjs';
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const raiz = path.join(aqui, '..', 'seed');
@@ -20,6 +21,32 @@ if (!url || !key) {
 const args = new Set(process.argv.slice(2));
 const sb = createClient(url, key, { auth: { persistSession: false } });
 const leer = (f) => JSON.parse(fs.readFileSync(path.join(raiz, f), 'utf8'));
+
+async function leerColeccion(coleccion) {
+  const filas = [];
+  for (let desde = 0; ; desde += 1000) {
+    const { data, error } = await sb.from('docs').select('id,data').eq('coleccion', coleccion).order('id').range(desde, desde + 999);
+    if (error) throw new Error(`${coleccion}: ${error.message}`);
+    filas.push(...data);
+    if (data.length < 1000) break;
+  }
+  return filas;
+}
+
+// Los productos que ya existen conservan lo que editaste en el sistema (colores, guía de tallas,
+// descripción, destacado, fotos nuevas...). Del archivo solo se actualizan el precio y se suman
+// los colores y fotos que falten.
+function fusionarProducto(actual, nuevo) {
+  const d = { ...actual, precio: nuevo.precio, activo: true };
+  if (!d.corte && nuevo.corte) d.corte = nuevo.corte;
+  d.fotos = [...(actual.fotos || [])];
+  (nuevo.fotos || []).forEach((f) => { if (!d.fotos.includes(f)) d.fotos.push(f); });
+  d.fc = [...(actual.fc || [])];
+  (nuevo.fc || []).forEach((x) => { if (!d.fc.some((y) => y.c === x.c)) d.fc.push(x); });
+  if (!d.fotos.length) delete d.fotos;
+  if (!d.fc.length) delete d.fc;
+  return d;
+}
 
 async function subirDocs(coleccion, lista) {
   for (let i = 0; i < lista.length; i += 50) {
@@ -54,9 +81,16 @@ try {
   const { error: e0 } = await sb.from('docs').select('id').limit(1);
   if (e0) throw new Error('No encuentro la tabla "docs". Primero ejecuta supabase/schema.sql en el SQL Editor. (' + e0.message + ')');
   if (!args.has('--sin-fotos')) await subirFotos();
-  await subirDocs('products', leer('products.json'));
+  const actuales = new Map((await leerColeccion('products')).map((r) => [r.id, r.data]));
+  const productos = leer('products.json').map((p) => (actuales.has(p.id) ? { id: p.id, data: fusionarProducto(actuales.get(p.id), p.data) } : p));
+  await subirDocs('products', productos);
   if (!args.has('--sin-inventario')) {
-    const nuevas = leer('entries.json');
+    const conteos = leer('entries.json');
+    // Ajusta el conteo para no descontar dos veces lo que ya se registró en el sistema hasta la fecha del conteo
+    const corte = Math.min(...conteos.map((e) => e.data.ts));
+    const otros = movimientosOtros({ entradas: await leerColeccion('entries'), ventas: await leerColeccion('sales'), pedidos: await leerColeccion('orders') }, corte);
+    const nuevas = ajustarConteos(conteos, otros);
+    console.log(`  conteo al ${new Date(corte).toLocaleString('es-BO', { timeZone: 'America/La_Paz' })}; ajuste por ${otros.size} combinaciones con movimientos previos`);
     await subirDocs('entries', nuevas);
     // El inventario nuevo reemplaza a los conteos anteriores (ids que empiezan con "inv-"), para no duplicar stock
     const { data: previos } = await sb.from('docs').select('id').eq('coleccion', 'entries').like('id', 'inv-%');
