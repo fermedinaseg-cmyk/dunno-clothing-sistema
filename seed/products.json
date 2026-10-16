@@ -673,10 +673,10 @@
    "fotos": [
     "seed/d568c142b012.jpg",
     "seed/0ccdd6b978d5.jpg",
-    "seed/89180dd43298.jpg",
-    "seed/7219c378f480.jpg",
+    "seed/1743e286508c.jpg",
+    "seed/59bc319f2ed8.jpg",
     "seed/024627b7510e.jpg",
-    "seed/7492bb188d3b.jpg"
+    "seed/0197674e9811.jpg"
    ],
    "fc": [
     {
@@ -689,11 +689,11 @@
     },
     {
      "c": "Guindo",
-     "f": "seed/89180dd43298.jpg"
+     "f": "seed/1743e286508c.jpg"
     },
     {
      "c": "Azul acero",
-     "f": "seed/7219c378f480.jpg"
+     "f": "seed/59bc319f2ed8.jpg"
     },
     {
      "c": "Plomo",
@@ -701,7 +701,7 @@
     },
     {
      "c": "Cam. claro/ melange",
-     "f": "seed/7492bb188d3b.jpg"
+     "f": "seed/0197674e9811.jpg"
     }
    ]
   }
@@ -2326,7 +2326,7 @@
    "activo": true,
    "fotos": [
     "seed/fd6ce4788f36.jpg",
-    "seed/458fbabb104b.jpg",
+    "seed/9b4f4a03c07f.jpg",
     "seed/6bed749c9d91.jpg"
    ],
    "fc": [
@@ -2336,7 +2336,7 @@
     },
     {
      "c": "Negro",
-     "f": "seed/458fbabb104b.jpg"
+     "f": "seed/9b4f4a03c07f.jpg"
     },
     {
      "c": "Beige/arena",
