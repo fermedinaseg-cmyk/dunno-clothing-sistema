@@ -54,7 +54,7 @@
   "data": {
    "modelo": "AMBITION",
    "marca": "MURWARI",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Boxi",
    "precio": 370,
    "activo": true,
@@ -400,7 +400,7 @@
   "data": {
    "modelo": "BÁSICO",
    "marca": "MURWARI",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Boxi",
    "precio": 360,
    "activo": true,
@@ -1038,7 +1038,7 @@
   "data": {
    "modelo": "CHILL OUT TIME",
    "marca": "DUNNO",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Oversize",
    "precio": 370,
    "activo": true,
@@ -1068,7 +1068,7 @@
   "data": {
    "modelo": "CLUB",
    "marca": "HARD CLUB",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Tolán",
    "precio": 370,
    "activo": true,
@@ -1243,7 +1243,7 @@
   "data": {
    "modelo": "CREATIVE",
    "marca": "DUNNO",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Boxi",
    "precio": 380,
    "activo": true,
@@ -1268,7 +1268,7 @@
   "data": {
    "modelo": "CREATIVE",
    "marca": "MURWARI",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Boxi",
    "precio": 370,
    "activo": true,
@@ -1333,7 +1333,7 @@
   "data": {
    "modelo": "CULTURE",
    "marca": "MURWARI",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Boxi",
    "precio": 370,
    "activo": true,
@@ -1389,7 +1389,7 @@
   "data": {
    "modelo": "DENIM",
    "marca": "BOSS",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Boxi",
    "precio": 350,
    "activo": true,
@@ -1479,7 +1479,7 @@
   "data": {
    "modelo": "DOBLE ZIP CREATIVE",
    "marca": "DUNNO",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Boxi",
    "precio": 410,
    "activo": true,
@@ -1574,7 +1574,7 @@
   "data": {
    "modelo": "DUNNO STDS",
    "marca": "DUNNO",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Boxi",
    "precio": 380,
    "activo": true,
@@ -1670,7 +1670,7 @@
   "data": {
    "modelo": "FIREYOUR",
    "marca": "MURWARI",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Boxi",
    "precio": 380,
    "activo": true,
@@ -1895,7 +1895,7 @@
   "data": {
    "modelo": "GARDEN",
    "marca": "DUNNO",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Boxi",
    "precio": 380,
    "activo": true,
@@ -1995,7 +1995,7 @@
   "data": {
    "modelo": "GOOD THINGS",
    "marca": "DUNNO",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Oversize",
    "precio": 370,
    "activo": true,
@@ -2220,7 +2220,7 @@
   "data": {
    "modelo": "HARD STUDIOS",
    "marca": "HARD CLUB",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Oversize",
    "precio": 370,
    "activo": true,
@@ -2420,7 +2420,7 @@
   "data": {
    "modelo": "HEART HOODIE",
    "marca": "HARD CLUB",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Oversize",
    "precio": 370,
    "activo": true,
@@ -2576,7 +2576,7 @@
   "data": {
    "modelo": "HOODIE MURWARI",
    "marca": "MURWARI",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Boxi",
    "precio": 380,
    "activo": true,
@@ -2674,9 +2674,9 @@
  {
   "id": "horse-hoddie-hard-club-hoddie",
   "data": {
-   "modelo": "HORSE HODDIE",
+   "modelo": "HORSE HOODIE",
    "marca": "HARD CLUB",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Oversize",
    "precio": 370,
    "activo": true,
@@ -2929,7 +2929,7 @@
   "data": {
    "modelo": "LETRAS",
    "marca": "MURWARI",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Boxi",
    "precio": 380,
    "activo": true,
@@ -3648,7 +3648,7 @@
   "data": {
    "modelo": "PLEASURE",
    "marca": "HARD CLUB",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Oversize",
    "precio": 370,
    "activo": true,
@@ -3984,7 +3984,7 @@
   "data": {
    "modelo": "SELF CARE",
    "marca": "DUNNO",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Oversize",
    "precio": 370,
    "activo": true,
@@ -4295,7 +4295,7 @@
   "data": {
    "modelo": "STAR 4 HOODIE",
    "marca": "HARD CLUB",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Oversize",
    "precio": 370,
    "activo": true,
@@ -4561,7 +4561,7 @@
   "data": {
    "modelo": "URBAN",
    "marca": "MURWARI",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Boxi",
    "precio": 370,
    "activo": true,
@@ -4611,7 +4611,7 @@
   "data": {
    "modelo": "VENAS",
    "marca": "DUNNO",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Oversize",
    "precio": 390,
    "activo": true,
@@ -4681,7 +4681,7 @@
   "data": {
    "modelo": "VINTAGE",
    "marca": "HARD CLUB",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Oversize",
    "precio": 370,
    "activo": true,
@@ -4791,7 +4791,7 @@
   "data": {
    "modelo": "WEEK",
    "marca": "MURWARI",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Boxi",
    "precio": 370,
    "activo": true,
@@ -4871,7 +4871,7 @@
   "data": {
    "modelo": "WILD STUDIOS",
    "marca": "HARD CLUB",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Oversize",
    "precio": 370,
    "activo": true,
@@ -4961,7 +4961,7 @@
   "data": {
    "modelo": "WORLD",
    "marca": "MURWARI",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Boxi",
    "precio": 370,
    "activo": true,
@@ -5046,7 +5046,7 @@
   "data": {
    "modelo": "ZIP 3D",
    "marca": "MURWARI",
-   "categoria": "Hoddie",
+   "categoria": "Hoodie",
    "corte": "Boxi",
    "precio": 380,
    "activo": true,

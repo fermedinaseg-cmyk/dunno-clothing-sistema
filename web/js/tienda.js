@@ -50,7 +50,7 @@ const st = {
 const DEF = {
   nombre: 'Dunno Clothing',
   anuncio: 'Retiro gratis en tienda · Delivery en tu ciudad · Envíos a todo Bolivia',
-  hero: { titulo: 'Streetwear que se vive', texto: 'Poleras, hoddies, buzos y pantalones de las marcas que mueven la calle. Retira en Tarija, Cochabamba o Santa Cruz, o recíbelo en tu casa.', boton: 'Ver novedades' },
+  hero: { titulo: 'Streetwear que se vive', texto: 'Poleras, hoodies, buzos y pantalones de las marcas que mueven la calle. Retira en Tarija, Cochabamba o Santa Cruz, o recíbelo en tu casa.', boton: 'Ver novedades' },
   pagos: { qr: true, transferencia: true, contraentrega: true, tienda: true },
   envio: { delivery: { tarija: 15, cochabamba: 15, santacruz: 20 }, gratis_desde: 0, nacional_texto: 'Enviamos por flota o encomienda a todo Bolivia. El costo del transporte lo pagas al recibir.' },
   hold_horas: 12,
@@ -69,7 +69,7 @@ async function cargarAjustes() {
 async function cargarCatalogo() {
   const { data, error } = await sb.rpc('tienda_catalogo', { p_sucursal: st.suc });
   if (error) throw error;
-  st.items = data || [];
+  st.items = (data || []).map((p) => ({ ...p, categoria: /^hoddie$/i.test(String(p.categoria || '').trim()) ? 'Hoodie' : p.categoria, modelo: String(p.modelo || '').replace(/hoddie/gi, (m) => (m === m.toUpperCase() ? 'HOODIE' : 'Hoodie')) }));
   st.byId = new Map(st.items.map((p) => [p.id, p]));
   st.listo = true;
 }

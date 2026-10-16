@@ -85,7 +85,7 @@ async function cargar(mantener) {
     $('empty').textContent = 'No pudimos cargar el catálogo. Intenta de nuevo en un momento.';
     return;
   }
-  st.items = data || [];
+  st.items = (data || []).map((p) => ({ ...p, categoria: /^hoddie$/i.test(String(p.categoria || '').trim()) ? 'Hoodie' : p.categoria, modelo: String(p.modelo || '').replace(/hoddie/gi, (m) => (m === m.toUpperCase() ? 'HOODIE' : 'Hoodie')) }));
   if (!mantener) { st.cat = ''; st.sel = {}; }
   pintar();
 }
