@@ -676,7 +676,8 @@
     "seed/1743e286508c.jpg",
     "seed/59bc319f2ed8.jpg",
     "seed/024627b7510e.jpg",
-    "seed/0197674e9811.jpg"
+    "seed/0197674e9811.jpg",
+    "seed/a504b9b9b7ee.jpg"
    ],
    "fc": [
     {
@@ -702,6 +703,10 @@
     {
      "c": "Cam. claro/ melange",
      "f": "seed/0197674e9811.jpg"
+    },
+    {
+     "c": "Washed 1",
+     "f": "seed/a504b9b9b7ee.jpg"
     }
    ]
   }
@@ -974,8 +979,22 @@
    "marca": "MURWARI",
    "categoria": "Chaqueta",
    "corte": "Boxi",
-   "precio": 390,
-   "activo": true
+   "precio": 410,
+   "activo": true,
+   "fc": [
+    {
+     "c": "Azul",
+     "f": "seed/b7b19d355bdb.jpg"
+    },
+    {
+     "c": "Negro",
+     "f": "seed/e4cd80fc686b.jpg"
+    }
+   ],
+   "fotos": [
+    "seed/b7b19d355bdb.jpg",
+    "seed/e4cd80fc686b.jpg"
+   ]
   }
  },
  {
@@ -5312,6 +5331,306 @@
     {
      "c": "Perla",
      "f": "seed/7c5f73aa766d.jpg"
+    }
+   ]
+  }
+ },
+ {
+  "id": "built-murwari-hoddie",
+  "data": {
+   "modelo": "BUILT",
+   "marca": "MURWARI",
+   "categoria": "Hoodie",
+   "corte": "Boxi",
+   "precio": 390,
+   "activo": true,
+   "fotos": [
+    "seed/5705c396ee9e.jpg"
+   ],
+   "fc": [
+    {
+     "c": "Washed 1",
+     "f": "seed/5705c396ee9e.jpg"
+    }
+   ]
+  }
+ },
+ {
+  "id": "property-murwari-hoddie",
+  "data": {
+   "modelo": "PROPERTY",
+   "marca": "MURWARI",
+   "categoria": "Hoodie",
+   "corte": "Boxi",
+   "precio": 390,
+   "activo": true,
+   "fotos": [
+    "seed/810eb05c2e7a.jpg"
+   ],
+   "fc": [
+    {
+     "c": "Washed 1",
+     "f": "seed/810eb05c2e7a.jpg"
+    }
+   ]
+  }
+ },
+ {
+  "id": "slim-fit-murwari-polera",
+  "data": {
+   "modelo": "SLIM FIT",
+   "marca": "MURWARI",
+   "categoria": "Polera",
+   "corte": "Slim Fit",
+   "precio": 160,
+   "activo": true,
+   "fotos": [
+    "seed/772874522702.jpg",
+    "seed/7fd875e92607.jpg",
+    "seed/89ca4bc1ee63.jpg"
+   ],
+   "fc": [
+    {
+     "c": "Negro",
+     "f": "seed/772874522702.jpg"
+    },
+    {
+     "c": "Perla",
+     "f": "seed/7fd875e92607.jpg"
+    },
+    {
+     "c": "Plomo",
+     "f": "seed/89ca4bc1ee63.jpg"
+    }
+   ]
+  }
+ },
+ {
+  "id": "free-spirit-desland-polera",
+  "data": {
+   "modelo": "FREE SPIRIT",
+   "marca": "DESLAND",
+   "categoria": "Polera",
+   "corte": "Boxi",
+   "precio": 190,
+   "activo": true,
+   "fotos": [
+    "seed/a728bde327f3.jpg",
+    "seed/2cdd5b7656c9.jpg",
+    "seed/dd2f69d61896.jpg"
+   ],
+   "fc": [
+    {
+     "c": "Blanco",
+     "f": "seed/a728bde327f3.jpg"
+    },
+    {
+     "c": "Negro",
+     "f": "seed/2cdd5b7656c9.jpg"
+    },
+    {
+     "c": "Azul acero",
+     "f": "seed/dd2f69d61896.jpg"
+    }
+   ]
+  }
+ },
+ {
+  "id": "future-archive-desland-polera",
+  "data": {
+   "modelo": "FUTURE ARCHIVE",
+   "marca": "DESLAND",
+   "categoria": "Polera",
+   "corte": "Boxi",
+   "precio": 190,
+   "activo": true,
+   "fotos": [
+    "seed/6b160a6d3b31.jpg",
+    "seed/f77fe585d253.jpg"
+   ],
+   "fc": [
+    {
+     "c": "Perla",
+     "f": "seed/6b160a6d3b31.jpg"
+    },
+    {
+     "c": "Verde pino",
+     "f": "seed/f77fe585d253.jpg"
+    }
+   ]
+  }
+ },
+ {
+  "id": "memories-desland-polera",
+  "data": {
+   "modelo": "MEMORIES",
+   "marca": "DESLAND",
+   "categoria": "Polera",
+   "corte": "Boxi",
+   "precio": 190,
+   "activo": true,
+   "fotos": [
+    "seed/e3d3dbae4473.jpg",
+    "seed/dff243972588.jpg",
+    "seed/86968abcc97d.jpg"
+   ],
+   "fc": [
+    {
+     "c": "Café",
+     "f": "seed/e3d3dbae4473.jpg"
+    },
+    {
+     "c": "Negro",
+     "f": "seed/dff243972588.jpg"
+    },
+    {
+     "c": "Perla",
+     "f": "seed/86968abcc97d.jpg"
+    }
+   ]
+  }
+ },
+ {
+  "id": "move-forward-desland-polera",
+  "data": {
+   "modelo": "MOVE FORWARD",
+   "marca": "DESLAND",
+   "categoria": "Polera",
+   "corte": "Boxi",
+   "precio": 190,
+   "activo": true,
+   "fotos": [
+    "seed/f9cce11f8eec.jpg",
+    "seed/c913ed440b17.jpg",
+    "seed/0595e8b48ac3.jpg"
+   ],
+   "fc": [
+    {
+     "c": "Azul acero",
+     "f": "seed/f9cce11f8eec.jpg"
+    },
+    {
+     "c": "Negro",
+     "f": "seed/c913ed440b17.jpg"
+    },
+    {
+     "c": "Perla",
+     "f": "seed/0595e8b48ac3.jpg"
+    }
+   ]
+  }
+ },
+ {
+  "id": "natural-estudies-gato-desland-polera",
+  "data": {
+   "modelo": "NATURAL ESTUDIES (GATO)",
+   "marca": "DESLAND",
+   "categoria": "Polera",
+   "corte": "Boxi",
+   "precio": 200,
+   "activo": true,
+   "fotos": [
+    "seed/c0a09a0c6062.jpg",
+    "seed/af4d3bcac33d.jpg",
+    "seed/d4f9bf7521a0.jpg"
+   ],
+   "fc": [
+    {
+     "c": "Negro",
+     "f": "seed/c0a09a0c6062.jpg"
+    },
+    {
+     "c": "Perla",
+     "f": "seed/af4d3bcac33d.jpg"
+    },
+    {
+     "c": "Plomo",
+     "f": "seed/d4f9bf7521a0.jpg"
+    }
+   ]
+  }
+ },
+ {
+  "id": "somewhere-desland-polera",
+  "data": {
+   "modelo": "SOMEWHERE",
+   "marca": "DESLAND",
+   "categoria": "Polera",
+   "corte": "Boxi",
+   "precio": 190,
+   "activo": true,
+   "fotos": [
+    "seed/4dc9b25e69ad.jpg",
+    "seed/f2c4296c19c7.jpg",
+    "seed/2e1559804b0f.jpg"
+   ],
+   "fc": [
+    {
+     "c": "Perla",
+     "f": "seed/4dc9b25e69ad.jpg"
+    },
+    {
+     "c": "Rosado",
+     "f": "seed/f2c4296c19c7.jpg"
+    },
+    {
+     "c": "Verde óxido",
+     "f": "seed/2e1559804b0f.jpg"
+    }
+   ]
+  }
+ },
+ {
+  "id": "true-feellings-desland-polera",
+  "data": {
+   "modelo": "TRUE FEELLINGS",
+   "marca": "DESLAND",
+   "categoria": "Polera",
+   "corte": "Boxi",
+   "precio": 190,
+   "activo": true,
+   "fotos": [
+    "seed/0b9306d185a0.jpg",
+    "seed/1835b4c2512c.jpg",
+    "seed/5b3c3ec08833.jpg"
+   ],
+   "fc": [
+    {
+     "c": "Café",
+     "f": "seed/0b9306d185a0.jpg"
+    },
+    {
+     "c": "Negro",
+     "f": "seed/1835b4c2512c.jpg"
+    },
+    {
+     "c": "Perla",
+     "f": "seed/5b3c3ec08833.jpg"
+    }
+   ]
+  }
+ },
+ {
+  "id": "whit-purpose-desland-polera",
+  "data": {
+   "modelo": "WHIT PURPOSE",
+   "marca": "DESLAND",
+   "categoria": "Polera",
+   "corte": "Boxi",
+   "precio": 190,
+   "activo": true,
+   "fotos": [
+    "seed/6db50f3013ad.jpg",
+    "seed/a835fea16bf0.jpg"
+   ],
+   "fc": [
+    {
+     "c": "Negro",
+     "f": "seed/6db50f3013ad.jpg"
+    },
+    {
+     "c": "Perla",
+     "f": "seed/a835fea16bf0.jpg"
     }
    ]
   }
