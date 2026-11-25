@@ -102,6 +102,12 @@ try {
     aplicados++;
   }
   if (cambios.length) console.log(`  cambios de fotos aplicados: ${aplicados} de ${cambios.length}`);
+  // Diseños renombrados en el sistema de caja: solo si el nombre sigue siendo el anterior
+  const renombres = fs.existsSync(path.join(raiz, 'renombres.json')) ? leer('renombres.json') : [];
+  for (const r of renombres) {
+    const prod = productos.find((x) => x.id === r.p);
+    if (prod && prod.data.modelo === r.antes) { prod.data.modelo = r.modelo; console.log(`  renombrado ${r.antes} -> ${r.modelo}`); }
+  }
   await subirDocs('products', productos);
   if (!args.has('--sin-inventario')) {
     const conteos = leer('entries.json');
